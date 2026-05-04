@@ -4,7 +4,7 @@ app.py  —  FraudSentinel · World-Class Flask API
 Group 1 Capstone: Abhishek Kumar Saroj, Aman Kumar, Amit, Ankit
 """
 
-import os, sys, json, random, io, csv, uuid, requests
+import os, sys, json, random, io, csv, uuid, requests, time
 from datetime import datetime
 import numpy as np
 import pandas as pd
@@ -68,6 +68,25 @@ for mname, mfile in MODEL_FILES.items():
 # In-memory live feed storage
 live_feed   = []
 live_stats  = {"total":0,"fraud":0,"legit":0,"total_amount":0.0}
+
+# System Logs for Terminal
+system_logs = []
+def add_sys_log(msg, log_type='info'):
+    time_str = datetime.now().strftime("%H:%M:%S")
+    system_logs.append({"msg": msg, "type": log_type, "time": time_str})
+    if len(system_logs) > 100:
+        system_logs.pop(0)
+
+# Real metrics tracking
+SERVER_START_TIME = time.time()
+transaction_timestamps = []
+
+def record_transaction():
+    now = time.time()
+    transaction_timestamps.append(now)
+    # Keep only the last 10 seconds of timestamps for TPS calculation
+    while transaction_timestamps and transaction_timestamps[0] < now - 10:
+        transaction_timestamps.pop(0)
 
 # Training data stats for drift detection
 _drift_means = None
@@ -423,12 +442,15 @@ def simulate():
 
 @app.route("/api/predict", methods=["POST"])
 def api_predict():
+    record_transaction()
     data      = request.get_json()
     row       = {f: float(data.get(f, 0.0)) for f in feat_names}
     X_in      = pd.DataFrame([row])[feat_names]
     prob      = float(xgb_model.predict_proba(X_in)[0,1])
     threshold = float(data.get("threshold", 0.5))
-    return jsonify({"probability": round(prob,4), "prediction": int(prob>=threshold)})
+    pred      = int(prob>=threshold)
+    add_sys_log(f"Inference request processed. Risk Score: {prob*100:.2f}%", "warn" if pred==1 else "info")
+    return jsonify({"probability": round(prob,4), "prediction": pred})
 
 
 @app.route("/api/shap", methods=["POST"])
@@ -449,6 +471,7 @@ def api_shap():
 @app.route("/api/live-tx")
 def api_live_tx():
     """Generate and score a random synthetic transaction."""
+    record_transaction()
     rng     = np.random.default_rng()
     is_fraud = rng.random() < 0.08   # 8% fraud rate for demo excitement
     amount  = float(rng.lognormal(2.0 if is_fraud else 3.5,
@@ -486,6 +509,7 @@ def api_live_tx():
     live_stats["total_amount"] += amount
     if pred == 1:
         live_stats["fraud"] += 1
+        add_sys_log(f"Live Threat Intercepted: {tx_id} (${amount:.2f})", "err")
     else:
         live_stats["legit"] += 1
 
@@ -510,6 +534,7 @@ def api_live_feed():
 
 @app.route("/api/batch-predict", methods=["POST"])
 def api_batch_predict():
+    record_transaction()
     if "file" not in request.files:
         return jsonify({"error":"No file uploaded"}), 400
     f      = request.files["file"]
@@ -526,6 +551,7 @@ def api_batch_predict():
     fc    = int(preds.sum())
     tc    = len(df_up)
     rows  = df_up[["THREAT_SCORE","PREDICTION"]+feat_names[:5]].head(100).to_dict("records")
+    add_sys_log(f"Batch prediction finished: {tc} rows scanned, {fc} threats found.", "warn" if fc > 0 else "info")
     return jsonify({"total":tc, "fraud":fc, "legit":tc-fc,
                     "fraud_rate":round(fc/tc*100,2) if tc else 0, "rows":rows})
 
@@ -562,6 +588,28 @@ def api_summary():
         "live":    live_stats,
     })
 
+@app.route("/api/system-logs")
+def api_system_logs():
+    global system_logs
+    logs_to_send = list(system_logs)
+    system_logs.clear()
+    return jsonify(logs_to_send)
+
+@app.route("/api/health")
+def api_health():
+    """Returns real server uptime and actual TPS."""
+    now = time.time()
+    uptime = int(now - SERVER_START_TIME)
+    
+    # Calculate TPS over the last 10 seconds
+    while transaction_timestamps and transaction_timestamps[0] < now - 10:
+        transaction_timestamps.pop(0)
+    tps = len(transaction_timestamps) / 10.0
+    
+    return jsonify({
+        "uptime": uptime,
+        "tps": round(tps, 1)
+    })
 
 @app.route("/api/simulate-batch")
 def api_simulate_batch():
@@ -674,6 +722,7 @@ def api_set_model():
     name = request.get_json().get("model","XGBoost")
     if name in all_models or name == "XGBoost":
         set_active_model(name)
+        add_sys_log(f"Engine Switched: {name} is now ACTIVE.", "sys")
         return jsonify({"status": "ok", "active": name})
     return jsonify({"error": "Model not found"}), 404
 
@@ -846,16 +895,8 @@ def api_fetch_external():
                 json_data = json_data["data"]
             df_up = pd.DataFrame(json_data)
         except Exception as e:
-            # Fallback for demo: generate 50 random live rows
-            print(f"[API Bridge] Connection to {url} failed: {e}. Generating mock response.")
-            rng = np.random.default_rng()
-            mock_data = []
-            for _ in range(50):
-                row = {"Amount": float(rng.lognormal(3.0, 1.0)), "Time": float(rng.integers(0, 100000))}
-                for f in feat_names:
-                    if f.startswith("V"): row[f] = float(rng.normal(0, 1.5))
-                mock_data.append(row)
-            df_up = pd.DataFrame(mock_data)
+            add_sys_log(f"External API Failed: {url} - {str(e)}", "err")
+            return jsonify({"error": f"Failed to fetch from {url}. Real API integration requires a valid endpoint. Error: {str(e)}"}), 502
 
         for col in feat_names:
             if col not in df_up.columns:

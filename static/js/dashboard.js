@@ -512,23 +512,51 @@ runAutoShap = async function() {
     fetchAiReason(buildPayload());
 };
 
-/* ── System Status Updates ─────────────────────────────────── */
-let sysStartTime = Date.now();
+/* ── System Status Updates & Live Logs ─────────────────────── */
+async function fetchSystemHealth() {
+    const start = Date.now();
+    try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        const latency = Date.now() - start;
+        
+        // Update Uptime
+        const diff = data.uptime;
+        const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+        const s = String(diff % 60).padStart(2, '0');
+        const uptimeEl = document.getElementById('sys-uptime');
+        if(uptimeEl) uptimeEl.textContent = `${h}:${m}:${s}`;
+        
+        // Update Latency (Real network round-trip time)
+        const latEl = document.getElementById('sys-latency');
+        if(latEl) {
+            latEl.textContent = `${latency} ms`;
+            latEl.style.color = latency > 500 ? 'var(--red)' : (latency > 150 ? 'var(--amber)' : 'var(--cyan)');
+        }
+        
+        // Update TPS (Real transactions per second)
+        const tpsEl = document.getElementById('sys-tps');
+        if(tpsEl) tpsEl.textContent = data.tps.toFixed(1);
+    } catch (e) {
+        // Silent fail on network error
+    }
+}
+
+async function fetchSystemLogs() {
+    try {
+        const res = await fetch('/api/system-logs');
+        const logs = await res.json();
+        for(const log of logs) {
+            // logTerminal(msg, type) is defined above
+            logTerminal(log.msg, log.type);
+        }
+    } catch (e) {}
+}
+
+// Fetch real metrics and logs every 2 seconds
 setInterval(() => {
-    // Uptime
-    const diff = Math.floor((Date.now() - sysStartTime) / 1000);
-    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-    const s = String(diff % 60).padStart(2, '0');
-    const uptimeEl = document.getElementById('sys-uptime');
-    if(uptimeEl) uptimeEl.textContent = `${h}:${m}:${s}`;
-    
-    // Latency mock for visual effect
-    const latEl = document.getElementById('sys-latency');
-    if(latEl) latEl.textContent = (Math.random() * 5 + 2).toFixed(1) + ' ms';
-    
-    // TPS mock
-    const tpsEl = document.getElementById('sys-tps');
-    if(tpsEl) tpsEl.textContent = (Math.random() * 50 + 10).toFixed(0);
-}, 1000);
+    fetchSystemHealth();
+    fetchSystemLogs();
+}, 2000);
 
