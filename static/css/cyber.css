@@ -980,3 +980,115 @@ body {
   cursor: pointer; font-size: 1rem;
 }
 .toast-close:hover { color: white; }
+
+/* ── Mobile App / PWA Overrides ───────────────────────────── */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Hide standard sidebar and top status bar on small screens */
+  .sidebar {
+    display: none;
+  }
+  
+  .top-status-bar {
+    justify-content: center;
+    font-size: 0.65rem;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  /* Main area needs to lose left margin and gain bottom padding for nav */
+  .main {
+    margin-left: 0;
+    padding: 10px 10px 80px 10px; /* 80px bottom padding for the nav bar */
+    width: 100%;
+  }
+
+  /* Grid layout fixes */
+  .dash-grid, .chart-row, .kpi-grid, .form-grid {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .half {
+    width: 100% !important;
+  }
+
+  .predict-panel {
+    padding: 15px;
+  }
+
+  /* App-like Bottom Navigation */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(5,15,15,0.98);
+    border-top: 1px solid var(--border2);
+    box-shadow: 0 -2px 10px rgba(0,255,159,0.1);
+    z-index: 9999;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 5px 15px 5px; /* Extra bottom padding for iPhone indicator */
+    backdrop-filter: blur(10px);
+  }
+  
+  .mobile-bottom-nav .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 0.65rem;
+    font-family: var(--font-hd);
+    letter-spacing: 1px;
+    gap: 4px;
+    transition: all 0.2s;
+  }
+  
+  .mobile-bottom-nav .nav-item .nav-icon {
+    font-size: 1.2rem;
+    filter: grayscale(100%) opacity(0.5);
+    transition: all 0.2s;
+  }
+  
+  .mobile-bottom-nav .nav-item.active {
+    color: var(--neon);
+    text-shadow: 0 0 5px var(--neon);
+  }
+  
+  .mobile-bottom-nav .nav-item.active .nav-icon {
+    filter: none;
+  }
+
+  /* Adjust terminal for mobile */
+  .cyber-terminal {
+    width: 100%;
+    right: 0;
+    bottom: 60px; /* Above the bottom nav */
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .cyber-terminal.minimized {
+    transform: translateY(calc(100% - 30px));
+  }
+  
+  /* Larger touch targets for mobile */
+  input[type=range]::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .btn, .btn-cyber, .btn-feed {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+  }
+}

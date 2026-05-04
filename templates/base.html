@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <meta name="theme-color" content="#050f0f"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <title>{% block title %}FraudSentinel v3.0{% endblock %}</title>
   <meta name="description" content="FraudSentinel — World-class AI fraud detection ecosystem."/>
   <link rel="stylesheet" href="{{ url_for('static',filename='css/cyber.css') }}"/>
@@ -134,6 +137,30 @@
 
 <!-- Toast Container -->
 <div id="toast-container"></div>
+
+<!-- Mobile Bottom Navigation -->
+<nav class="mobile-bottom-nav">
+  <a href="{{ url_for('index') }}" class="nav-item {{ 'active' if request.endpoint == 'index' }}">
+    <span class="nav-icon">🛡️</span>
+    <span>Scan</span>
+  </a>
+  <a href="{{ url_for('eda') }}" class="nav-item {{ 'active' if request.endpoint == 'eda' }}">
+    <span class="nav-icon">📊</span>
+    <span>Recon</span>
+  </a>
+  <a href="{{ url_for('history') }}" class="nav-item {{ 'active' if request.endpoint == 'history' }}">
+    <span class="nav-icon">📜</span>
+    <span>Ledger</span>
+  </a>
+  <a href="{{ url_for('upload') }}" class="nav-item {{ 'active' if request.endpoint == 'upload' }}">
+    <span class="nav-icon">📁</span>
+    <span>Upload</span>
+  </a>
+  <a href="{{ url_for('metrics_page') }}" class="nav-item {{ 'active' if request.endpoint == 'metrics_page' }}">
+    <span class="nav-icon">📈</span>
+    <span>Metrics</span>
+  </a>
+</nav>
 
 {% block scripts %}{% endblock %}
 </body>
