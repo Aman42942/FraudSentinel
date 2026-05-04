@@ -22,3 +22,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Project Reports (Do not upload to GitHub)
+FraudSentinel_Final_Report.docx
+FraudSentinel_Final_Report.md
+generate_report.py
