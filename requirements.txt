@@ -1,0 +1,16 @@
+flask
+gunicorn
+pandas
+numpy
+scikit-learn
+xgboost
+lightgbm
+catboost
+shap
+joblib
+plotly
+openpyxl
+fpdf2
+python-dotenv
+imbalanced-learn
+scipy

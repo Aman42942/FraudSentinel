@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Model Metrics · FraudSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📈 NEURAL METRICS</h1>
+  <div class="page-sub">MODEL PERFORMANCE ANALYSIS · MULTI-MODEL COMPARISON</div>
+</div>
+
+<!-- Metrics table + Radar side by side -->
+<div class="sec"><h2>XGBoost Performance Database</h2></div>
+<div class="chart-row">
+  <div class="chart-box half">
+    <table class="metrics-table">
+      <thead>
+        <tr><th>Metric</th><th>Value</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        {% for row in table_data %}
+        <tr>
+          <td>{{ row.metric }}</td>
+          <td>{{ row.value }}</td>
+          <td style="color:var(--muted);font-size:.72rem;">{{ row.note }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="chart-box half">
+    <div id="radar-chart"></div>
+  </div>
+</div>
+
+<!-- Multi-Model Comparison -->
+<div class="sec"><h2>Multi-Model Comparison · LR vs RF vs XGBoost</h2></div>
+<div class="chart-box">
+  <div id="comp-chart"></div>
+</div>
+
+{% if comp_table %}
+<div class="chart-box" style="overflow-x:auto;">
+  <table class="metrics-table">
+    <thead>
+      <tr><th>Model</th><th>PR-AUC</th><th>ROC-AUC</th><th>F1</th><th>Precision</th><th>Recall</th></tr>
+    </thead>
+    <tbody>
+      {% for row in comp_table %}
+      <tr>
+        <td style="color:var(--cyan);">{{ row.model }}</td>
+        <td>{{ row.pr_auc }}</td>
+        <td>{{ row.roc_auc }}</td>
+        <td>{{ row.f1 }}</td>
+        <td>{{ row.precision }}</td>
+        <td>{{ row.recall }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- PR-AUC Curve -->
+<div class="sec"><h2>Precision-Recall Curve · XGBoost</h2></div>
+<div class="chart-box">
+  <div id="pr-chart"></div>
+  <p style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted);margin-top:8px;">
+    &gt; Area under curve = PR-AUC. Higher = better fraud detection with minimal false alarms.
+  </p>
+</div>
+
+<!-- Feature Importance -->
+<div class="sec"><h2>Feature Importance Scan · XGBoost Gain</h2></div>
+<div class="chart-box">
+  <div id="fi-chart"></div>
+  <p style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted);margin-top:8px;">
+    &gt; PCA-transformed features V14, V17, V12 carry the highest discriminative power.
+  </p>
+</div>
+
+<!-- Confusion Matrix -->
+<div class="sec"><h2>Confusion Matrix · Quadrant Breakdown</h2></div>
+<div class="cm-grid">
+  <div class="cm-cell">
+    <div class="cm-val">{{ "{:,}".format(cm_detail.tp) }}</div>
+    <div class="cm-lbl">✓ True Positives — Fraud Intercepted</div>
+  </div>
+  <div class="cm-cell">
+    <div class="cm-val">{{ "{:,}".format(cm_detail.tn) }}</div>
+    <div class="cm-lbl">✓ True Negatives — Legitimate Cleared</div>
+  </div>
+  <div class="cm-cell bad">
+    <div class="cm-val">{{ "{:,}".format(cm_detail.fp) }}</div>
+    <div class="cm-lbl">⚠ False Positives — Legitimate Flagged</div>
+  </div>
+  <div class="cm-cell bad">
+    <div class="cm-val">{{ "{:,}".format(cm_detail.fn) }}</div>
+    <div class="cm-lbl">🚨 False Negatives — Threats Evaded</div>
+  </div>
+</div>
+
+<div style="margin-top:36px;padding-top:14px;border-top:1px solid var(--border2);
+            font-family:var(--font-mono);font-size:.6rem;color:var(--muted);
+            text-align:center;opacity:.4;">
+  FRAUDSENTINEL · METRICS_MODULE · GROUP_01 · 2026
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CHARTS = {
+  radar: {{ charts.radar | safe }},
+  pr:    {{ charts.pr    | safe }},
+  fi:    {{ charts.fi    | safe }},
+  comp:  {{ charts.comp  | safe }},
+};
+const opts = {responsive:true,displayModeBar:false};
+Plotly.newPlot('radar-chart', CHARTS.radar.data, CHARTS.radar.layout, opts);
+Plotly.newPlot('pr-chart',    CHARTS.pr.data,    CHARTS.pr.layout,    opts);
+Plotly.newPlot('fi-chart',    CHARTS.fi.data,    CHARTS.fi.layout,    opts);
+Plotly.newPlot('comp-chart',  CHARTS.comp.data,  CHARTS.comp.layout,  opts);
+</script>
+{% endblock %}

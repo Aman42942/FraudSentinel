@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Data Analysis · FraudSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📊 DATA RECON</h1>
+  <div class="page-sub">EXPLORATORY DATA ANALYSIS · 10,000 SYNTHETIC TRANSACTIONS</div>
+</div>
+
+{% if error %}
+<div class="info-box" style="border-color:rgba(255,0,60,.3);color:var(--red);">
+  ⚠ Data unavailable. Run: <strong>python -m src.model_training</strong>
+</div>
+{% else %}
+
+<!-- Stats -->
+<div class="sec"><h2>Dataset Overview</h2></div>
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-value">{{ "{:,}".format(stats.total) }}</div>
+    <div class="kpi-label">Total Records</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value" style="color:var(--neon);">{{ "{:,}".format(stats.legit) }}</div>
+    <div class="kpi-label">Legitimate Transactions</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value" style="color:var(--red);">{{ "{:,}".format(stats.fraud) }}</div>
+    <div class="kpi-label">Fraudulent Transactions</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value" style="color:var(--cyan);">{{ stats.rate }}</div>
+    <div class="kpi-label">Fraud Rate</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value">{{ stats.avg_amt }}</div>
+    <div class="kpi-label">Avg Transaction</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value">{{ stats.max_amt }}</div>
+    <div class="kpi-label">Max Transaction</div>
+  </div>
+</div>
+
+<!-- Class Distribution + Amount Distribution -->
+<div class="sec"><h2>Class Signal Distribution</h2></div>
+<div class="chart-row">
+  <div class="chart-box half">
+    <div id="donut-chart"></div>
+  </div>
+  <div class="chart-box half">
+    <div id="amt-chart"></div>
+  </div>
+</div>
+
+<!-- Time Distribution -->
+<div class="sec"><h2>Transaction Time Analysis</h2></div>
+<div class="chart-box">
+  <div id="time-chart"></div>
+  <p style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted);margin-top:8px;">
+    &gt; Time = seconds elapsed. Fraudulent transactions are concentrated in certain time bands.
+  </p>
+</div>
+
+<!-- 3D PCA Scatter -->
+<div class="sec"><h2>3D PCA Feature Space · Interactive Scatter</h2></div>
+<div class="chart-box">
+  <div id="scatter3d-chart"></div>
+  <p style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted);margin-top:8px;">
+    &gt; Drag to rotate · Scroll to zoom · Click legend to toggle class &nbsp;|&nbsp;
+    GREEN = Legitimate &nbsp;|&nbsp; RED = Fraud
+  </p>
+</div>
+
+<!-- PCA Box Plots -->
+<div class="sec"><h2>PCA Feature Signature Analysis · Box Plots</h2></div>
+<div class="chart-box">
+  <div id="box-chart"></div>
+</div>
+
+<!-- Correlation Heatmap -->
+<div class="sec"><h2>Correlation Matrix Scan</h2></div>
+<div class="chart-box">
+  <div id="corr-chart"></div>
+  <p style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted);margin-top:8px;">
+    &gt; Strong negative correlation with Class → high discriminative power for fraud detection.
+  </p>
+</div>
+
+{% endif %}
+
+<div style="margin-top:36px;padding-top:14px;border-top:1px solid var(--border2);
+            font-family:var(--font-mono);font-size:.6rem;color:var(--muted);
+            text-align:center;opacity:.4;">
+  FRAUDSENTINEL · DATA_RECON_MODULE · GROUP_01 · 2026
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not error %}
+<script>
+const CHARTS = {
+  donut:      {{ charts.donut     | safe }},
+  amt:        {{ charts.amt       | safe }},
+  time:       {{ charts.time      | safe }},
+  scatter3d:  {{ charts.scatter3d | safe }},
+  box:        {{ charts.box       | safe }},
+  corr:       {{ charts.corr      | safe }},
+};
+const opts = {responsive:true, displayModeBar:true, modeBarButtonsToRemove:['lasso2d','select2d']};
+Plotly.newPlot('donut-chart',    CHARTS.donut.data,     CHARTS.donut.layout,     {responsive:true,displayModeBar:false});
+Plotly.newPlot('amt-chart',      CHARTS.amt.data,       CHARTS.amt.layout,       {responsive:true,displayModeBar:false});
+Plotly.newPlot('time-chart',     CHARTS.time.data,      CHARTS.time.layout,      {responsive:true,displayModeBar:false});
+Plotly.newPlot('scatter3d-chart',CHARTS.scatter3d.data, CHARTS.scatter3d.layout, opts);
+Plotly.newPlot('box-chart',      CHARTS.box.data,       CHARTS.box.layout,       {responsive:true,displayModeBar:false});
+Plotly.newPlot('corr-chart',     CHARTS.corr.data,      CHARTS.corr.layout,      {responsive:true,displayModeBar:false});
+</script>
+{% endif %}
+{% endblock %}

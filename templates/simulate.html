@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Live Simulator · FraudSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>⚙️ LIVE SIMULATOR</h1>
+  <div class="page-sub">REAL-TIME TRANSACTION STREAM GENERATOR · XGBoost SCORING ENGINE</div>
+</div>
+
+<div class="sec"><h2>Simulation Controls</h2></div>
+<div class="sim-controls">
+  <div class="sim-stat">
+    <div class="sim-stat-val" id="sim-total">0</div>
+    <div class="sim-stat-lbl">Total Processed</div>
+  </div>
+  <div class="sim-stat">
+    <div class="sim-stat-val" id="sim-fraud" style="color:var(--red);">0</div>
+    <div class="sim-stat-lbl">Threats Detected</div>
+  </div>
+  <div class="sim-stat">
+    <div class="sim-stat-val" id="sim-rate">0%</div>
+    <div class="sim-stat-lbl">Fraud Rate</div>
+  </div>
+  <div style="flex:2;text-align:center;">
+    <button class="btn btn-cyber" id="sim-btn" onclick="toggleSimulator()"
+            style="padding:14px 40px;font-size:.88rem;">
+      ▶ START SIMULATION
+    </button>
+  </div>
+  <div style="flex:1;text-align:right;">
+    <button class="btn-feed" onclick="exportCSV()">⬇ EXPORT FEED</button>
+  </div>
+</div>
+
+<div class="sec"><h2>Fraud Rate Trend · Real-Time Chart</h2></div>
+<div class="chart-box">
+  <div id="sim-chart" style="height:300px;"></div>
+  <p style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted);margin-top:8px;">
+    &gt; RED LINE = Cumulative fraud rate % &nbsp;|&nbsp; BLUE LINE = Instantaneous threat score &nbsp;|&nbsp; X = Transaction count
+  </p>
+</div>
+
+<div class="chart-row">
+  <div class="chart-box half">
+    <div class="sec" style="margin-top:0;"><h2>Transaction Log</h2></div>
+    <div id="sim-log" style="height:300px;"></div>
+  </div>
+  <div class="chart-box half">
+    <div class="sec" style="margin-top:0;"><h2>System Info</h2></div>
+    <div class="info-box" style="margin-bottom:16px;">
+      <strong>[ SIMULATION PROTOCOL ]</strong><br/>
+      Each tick generates one synthetic transaction with realistic PCA-transformed features.
+      The XGBoost model scores each transaction in real-time (≈ 0.3ms per inference).<br/><br/>
+      <span class="hl-red">[ 8% base fraud rate ]</span> — elevated for demonstration<br/>
+      <span class="hl-cyan">[ 0.5 detection threshold ]</span> — adjustable in Dashboard<br/><br/>
+      <strong>[ FRAUD SIGNATURE ]</strong><br/>
+      Fraudulent transactions are generated with anomalous V1, V2, V3, V4, V14 values
+      replicating known behavioral patterns from the European Credit Card dataset.
+    </div>
+    <div class="chart-box" style="background:var(--bg3);border-color:var(--border2);">
+      <div style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted);line-height:1.9;">
+        <div>&gt; MODEL: <span style="color:var(--neon);">XGBClassifier</span></div>
+        <div>&gt; FEATURES: <span style="color:var(--cyan);">30 (PCA + Amount + Time)</span></div>
+        <div>&gt; SAMPLING: <span style="color:var(--cyan);">SMOTE (balanced training)</span></div>
+        <div>&gt; SCALER: <span style="color:var(--cyan);">RobustScaler</span></div>
+        <div>&gt; METRIC: <span style="color:var(--neon);">PR-AUC = 1.000</span></div>
+        <div>&gt; STATUS: <span style="color:var(--neon);">■ READY</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:36px;padding-top:14px;border-top:1px solid var(--border2);
+            font-family:var(--font-mono);font-size:.6rem;color:var(--muted);
+            text-align:center;opacity:.4;">
+  FRAUDSENTINEL · SIMULATOR_MODULE · GROUP_01 · 2026
+</div>
+{% endblock %}

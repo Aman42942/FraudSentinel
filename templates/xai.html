@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Explainability · FraudSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🔍 NEURAL DECODE</h1>
+  <div class="page-sub">
+    XAI · SHAP EXPLAINABILITY ENGINE &nbsp;|&nbsp;
+    <div class="shap-live-badge" style="display:inline-flex;">
+      <div class="shap-live-dot"></div> AUTO-UPDATING
+    </div>
+    <span id="shap-loading" style="margin-left:10px;"><span class="spinner"></span> computing...</span>
+  </div>
+</div>
+
+<!-- Theory -->
+<div class="sec"><h2>Protocol · SHAP Framework</h2></div>
+<div class="info-box">
+  <strong>[ SHAP — SHapley Additive exPlanations ]</strong><br/>
+  Rooted in cooperative game theory. Computes marginal contribution of each feature across all coalitions.<br/><br/>
+  <span class="hl-red">[ POSITIVE SHAP ]</span> → amplifies threat score → pushes toward <strong>FRAUD</strong><br/>
+  <span class="hl-cyan">[ NEGATIVE SHAP ]</span> → suppresses threat score → pushes toward <strong>LEGITIMATE</strong><br/><br/>
+  Move any slider below — charts update <strong>automatically</strong> with no button press required.
+</div>
+
+<!-- Controls + Results in 2-column layout -->
+<div class="dash-grid">
+
+  <!-- LEFT: Sliders -->
+  <div class="predict-panel">
+    <h3>&gt; Transaction Parameters — move sliders to see SHAP update live</h3>
+
+    <div class="threshold-row">
+      <label>Detection Threshold</label>
+      <input type="range" id="x-threshold" min="0.1" max="0.9" step="0.01" value="0.5"
+             oninput="document.getElementById('xth-val').textContent=parseFloat(this.value).toFixed(2);scheduleShap()"/>
+      <div class="threshold-val" id="xth-val">0.50</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Time (seconds)</label>
+        <input type="range" id="x-Time" min="0" max="172800" step="100" value="43200"
+               oninput="updateVal('Time',this.value);scheduleShap()"/>
+        <div class="range-val" id="xv-Time">43200</div>
+      </div>
+      <div class="form-group">
+        <label>Amount (USD)</label>
+        <input type="range" id="x-Amount" min="0.5" max="5000" step="0.5" value="120"
+               oninput="updateVal('Amount',this.value);scheduleShap()"/>
+        <div class="range-val" id="xv-Amount">120.0</div>
+      </div>
+      {% for v in feat_names %}
+        {% if v.startswith('V') and v[1:]|int <= 20 %}
+        <div class="form-group">
+          <label>{{ v }} [PCA]</label>
+          <input type="range" id="x-{{ v }}" min="-6" max="6" step="0.1" value="0"
+                 oninput="updateVal('{{ v }}',this.value);scheduleShap()"/>
+          <div class="range-val" id="xv-{{ v }}">0.0</div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Result -->
+    <div class="result-box" id="shap-pred-box">
+      <div class="result-label" id="shap-pred-label">SCANNING...</div>
+      <div class="result-score" id="shap-pred-score"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Risk gauge + live info -->
+  <div>
+    <div class="chart-box" style="padding:16px;margin-bottom:16px;">
+      <div class="gauge-label" style="margin-bottom:4px;">REAL-TIME RISK GAUGE</div>
+      <div id="risk-gauge"></div>
+      <div class="gauge-label">THREAT PROBABILITY</div>
+    </div>
+
+    <div class="info-box" style="margin-bottom:0;">
+      <strong>[ HOW TO READ THE WATERFALL ]</strong><br/>
+      The waterfall starts at the <span class="hl-cyan">BASE VALUE</span> (model's average prediction).
+      Each bar shows how much a feature <em>pushes</em> the score up (red) or down (green).
+      The final bar is the actual threat score for this transaction.
+    </div>
+  </div>
+</div>
+
+<!-- SHAP Charts -->
+<div id="shap-section" style="margin-top:24px;">
+  <div class="sec"><h2>Global Feature Impact · SHAP Bar Chart</h2></div>
+  <div class="chart-box">
+    <div id="shap-bar-chart"></div>
+    <p style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted);margin-top:8px;">
+      &gt; RED bar = amplifies fraud signal &nbsp;|&nbsp; GREEN bar = suppresses fraud signal &nbsp;|&nbsp; Length = magnitude
+    </p>
+  </div>
+
+  <div class="sec"><h2>Waterfall Decomposition · Feature-by-Feature</h2></div>
+  <div class="chart-box">
+    <div id="shap-waterfall-chart"></div>
+  </div>
+</div>
+
+<div style="margin-top:36px;padding-top:14px;border-top:1px solid var(--border2);
+            font-family:var(--font-mono);font-size:.6rem;color:var(--muted);
+            text-align:center;opacity:.4;">
+  FRAUDSENTINEL · XAI_MODULE · GROUP_01 · 2026
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.FEAT_NAMES = {{ feat_names | tojson }};
+// Wire threshold on XAI page
+document.getElementById("x-threshold") &&
+  (document.getElementById("x-threshold").addEventListener("input",
+    e => { const v=document.getElementById("xth-val"); if(v) v.textContent=parseFloat(e.target.value).toFixed(2); }));
+
+// Override buildPayload to read threshold from XAI page slider
+const _origBuild = window.buildPayload;
+window.buildPayload = function(thr) {
+  const el = document.getElementById("x-threshold");
+  return _origBuild(el ? parseFloat(el.value) : 0.5);
+};
+
+// Init gauge
+updateRiskGauge(0.03);
+// Auto-run on load
+setTimeout(runAutoShap, 400);
+</script>
+{% endblock %}

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>{% block title %}FraudSentinel{% endblock %}</title>
+  <meta name="description" content="FraudSentinel — World-class AI fraud detection. Group 1 ML Capstone 2026."/>
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/cyber.css') }}"/>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <script src="{{ url_for('static',filename='js/dashboard.js') }}" defer></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- ── Sidebar ────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">⚡</span>
+      <div class="logo-title">FRAUD SENTINEL</div>
+      <div class="logo-sub">CYBER · EDITION · v2.0</div>
+    </div>
+
+    <div class="nav-label">Main</div>
+    <ul class="nav-links">
+      <li>
+        <a href="{{ url_for('index') }}"
+           class="{{ 'active' if request.endpoint == 'index' }}">
+          <span class="nav-icon">🛡️</span> Dashboard
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('eda') }}"
+           class="{{ 'active' if request.endpoint == 'eda' }}">
+          <span class="nav-icon">📊</span> Data Analysis
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('metrics_page') }}"
+           class="{{ 'active' if request.endpoint == 'metrics_page' }}">
+          <span class="nav-icon">📈</span> Model Metrics
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('xai') }}"
+           class="{{ 'active' if request.endpoint == 'xai' }}">
+          <span class="nav-icon">🔍</span> Explainability
+        </a>
+      </li>
+    </ul>
+
+    <div class="nav-label" style="margin-top:16px;">Tools</div>
+    <ul class="nav-links">
+      <li>
+        <a href="{{ url_for('simulate') }}"
+           class="{{ 'active' if request.endpoint == 'simulate' }}">
+          <span class="nav-icon">⚙️</span> Simulator
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      GROUP_01 :: ML_CAPSTONE_2026<br/>
+      ABHISHEK · AMAN · AMIT · ANKIT<br/>
+      XGBoost + SMOTE + SHAP
+    </div>
+  </aside>
+
+  <!-- ── Main ───────────────────────────────────────────────── -->
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>
