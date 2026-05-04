@@ -985,25 +985,58 @@ body {
 .mobile-bottom-nav {
   display: none;
 }
+.mobile-header {
+  display: none;
+}
 
 @media (max-width: 768px) {
-  /* Hide standard sidebar and top status bar on small screens */
+  /* Mobile Header */
+  .mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg2);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 9998;
+  }
+  .mobile-logo {
+    font-family: var(--font-hd);
+    color: var(--neon);
+    font-weight: 900;
+    letter-spacing: 0.05em;
+  }
+  .hamburger-btn {
+    background: none;
+    border: none;
+    color: var(--neon);
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+
+  /* Slide-in sidebar for small screens */
   .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 10000;
+    width: 240px;
+  }
+  .sidebar.show-mobile {
+    transform: translateX(0);
+    box-shadow: 5px 0 20px rgba(0,0,0,0.8);
+  }
+  
+  /* Hide top status bar on mobile to save space */
+  .top-status-bar {
     display: none;
   }
   
-  .top-status-bar {
-    justify-content: center;
-    font-size: 0.65rem;
-    padding: 8px 10px;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  
-  /* Main area needs to lose left margin and gain bottom padding for nav */
+  /* Main area needs to lose left margin and gain top/bottom padding */
   .main {
     margin-left: 0;
-    padding: 10px 10px 80px 10px; /* 80px bottom padding for the nav bar */
+    padding: 70px 10px 80px 10px; /* 70px top padding for header, 80px bottom padding for the nav bar */
     width: 100%;
   }
 

@@ -13,6 +13,12 @@
   <script src="{{ url_for('static',filename='js/dashboard.js') }}" defer></script>
 </head>
 <body>
+<!-- Mobile Header Bar -->
+<div class="mobile-header">
+  <div class="mobile-logo">⚡ FRAUD SENTINEL</div>
+  <button class="hamburger-btn" onclick="document.querySelector('.sidebar').classList.toggle('show-mobile')">☰</button>
+</div>
+
 <!-- Global Alert Banner -->
 <div id="global-alert-banner" class="global-alert hidden">
   <span class="alert-icon">⚠️</span>
