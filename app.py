@@ -449,8 +449,13 @@ def api_predict():
     prob      = float(xgb_model.predict_proba(X_in)[0,1])
     threshold = float(data.get("threshold", 0.5))
     pred      = int(prob>=threshold)
+    
+    # NEW: Persist manual prediction to database
+    tx_id = f"MANUAL-{uuid.uuid4().hex[:6].upper()}"
+    insert_tx(tx_id, row["Amount"], "MANUAL_CHECK", get_active_model(), prob, pred, row, source="manual")
+    
     add_sys_log(f"Inference request processed. Risk Score: {prob*100:.2f}%", "warn" if pred==1 else "info")
-    return jsonify({"probability": round(prob,4), "prediction": pred})
+    return jsonify({"probability": round(prob,4), "prediction": pred, "id": tx_id})
 
 
 @app.route("/api/shap", methods=["POST"])
@@ -484,14 +489,19 @@ def api_live_tx():
     prob = float(xgb_model.predict_proba(X_in)[0,1])
     pred = int(prob >= 0.5)
 
-    tx_id = f"TX-{rng.integers(100000,999999)}"
+    tx_id = f"TX-{uuid.uuid4().hex[:6].upper()}"
+    tx_type = random.choice(["TRANSFER","PAYMENT","WITHDRAWAL","DEPOSIT"])
+    
+    # NEW: Persist live transaction to database
+    insert_tx(tx_id, amount, tx_type, get_active_model(), prob, pred, row, source="live")
+
     entry = {
         "id":     tx_id,
         "amount": amount,
         "prob":   round(prob,4),
         "pred":   pred,
         "time":   datetime.now().strftime("%H:%M:%S"),
-        "type":   random.choice(["TRANSFER","PAYMENT","WITHDRAWAL","DEPOSIT"]),
+        "type":   tx_type,
     }
 
     # Update live stats
@@ -600,6 +610,12 @@ def api_health():
         "uptime": uptime,
         "tps": round(tps, 1)
     })
+
+@app.route("/api/recent-history")
+def api_recent_history():
+    """Returns the last 15 transactions for dashboard initialization."""
+    rows, _ = get_history(page=1, per_page=15)
+    return jsonify(rows)
 
 @app.route("/api/simulate-batch")
 def api_simulate_batch():

@@ -435,11 +435,42 @@ function exportCSV() {
 }
 
 /* ── Init ──────────────────────────────────────────────────── */
+async function initDashboardFeed() {
+  const list = document.getElementById("live-feed-list");
+  if (!list) return;
+  try {
+    const res  = await fetch("/api/recent-history");
+    const rows = await res.json();
+    list.innerHTML = ""; // Clear placeholder
+    rows.forEach(tx => {
+      const isFraud = tx.prediction === 1;
+      const row = document.createElement("div");
+      row.className = `feed-row ${isFraud ? "feed-fraud" : "feed-legit"}`;
+      // Format timestamp (YYYY-MM-DD HH:MM:SS) to HH:MM:SS
+      const timePart = tx.timestamp ? tx.timestamp.split(" ")[1] : "00:00:00";
+      row.innerHTML = `
+        <span class="feed-id">${tx.id}</span>
+        <span class="feed-type">${tx.tx_type}</span>
+        <span class="feed-amt">$${parseFloat(tx.amount).toFixed(2)}</span>
+        <span class="feed-score" style="color:${isFraud?"#ff003c":"#00ff9f"}">
+          ${(tx.score*100).toFixed(1)}%
+        </span>
+        <span class="feed-status ${isFraud?"status-threat":"status-clear"}">
+          ${isFraud?"⚠ THREAT":"✓ CLEAR"}
+        </span>
+        <span class="feed-time">${timePart}</span>`;
+      list.appendChild(row);
+    });
+  } catch(e) { console.error("History init error:", e); }
+}
+
 document.addEventListener("DOMContentLoaded", ()=>{
   initCounters();
+  
   // Auto-start feed on dashboard
   if (document.getElementById("live-feed-list")) {
-    setTimeout(startLiveFeed, 800);
+    initDashboardFeed();
+    setTimeout(startLiveFeed, 2000); // Wait for history to load before starting live stream
   }
   // Auto-start SHAP on XAI page
   if (document.getElementById("shap-bar-chart")) {
