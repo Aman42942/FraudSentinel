@@ -446,3 +446,89 @@ document.addEventListener("DOMContentLoaded", ()=>{
     setTimeout(runAutoShap, 400);
   }
 });
+
+/* ── Cyber Terminal ────────────────────────────────────────── */
+function toggleTerminal() {
+    const term = document.getElementById('cyber-terminal');
+    const icon = document.getElementById('term-toggle-icon');
+    if(term) {
+        term.classList.toggle('minimized');
+        icon.textContent = term.classList.contains('minimized') ? '▲' : '▼';
+    }
+}
+
+function logTerminal(msg, type='info') {
+    const content = document.getElementById('terminal-content');
+    if(!content) return;
+    const line = document.createElement('div');
+    line.className = `term-line ${type}`;
+    const time = new Date().toISOString().substring(11,19);
+    line.textContent = `[${time}] ${msg}`;
+    content.appendChild(line);
+    content.scrollTop = content.scrollHeight;
+    
+    // Prune old logs
+    while(content.children.length > 50) {
+        content.firstChild.remove();
+    }
+}
+
+/* ── AI Reasoner & Model Switcher ──────────────────────────── */
+async function fetchAiReason(payload) {
+    const reasonEl = document.getElementById('ai-reason-text');
+    if(!reasonEl) return;
+    reasonEl.innerHTML = '<span class="spinner"></span> Analyzing causal factors...';
+    try {
+        const res = await fetch('/api/ai-reason', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        reasonEl.innerHTML = data.reason;
+    } catch(e) {
+        reasonEl.innerHTML = 'Error fetching reasoning.';
+    }
+}
+
+function changeActiveModel(modelName) {
+    fetch('/api/active-model', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({model: modelName})
+    }).then(r => r.json()).then(d => {
+        if(d.status === 'ok') {
+            showToast(`Engine Switched: ${modelName} is now active.`, 'info');
+            logTerminal(`Primary inference engine set to [${modelName}]`, 'sys');
+            setTimeout(() => location.reload(), 1500); // Reload to reflect changes
+        }
+    });
+}
+
+// Hook into existing runAutoShap to also call AI Reasoner
+const originalRunAutoShap = runAutoShap;
+runAutoShap = async function() {
+    await originalRunAutoShap();
+    fetchAiReason(buildPayload());
+};
+
+/* ── System Status Updates ─────────────────────────────────── */
+let sysStartTime = Date.now();
+setInterval(() => {
+    // Uptime
+    const diff = Math.floor((Date.now() - sysStartTime) / 1000);
+    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+    const s = String(diff % 60).padStart(2, '0');
+    const uptimeEl = document.getElementById('sys-uptime');
+    if(uptimeEl) uptimeEl.textContent = `${h}:${m}:${s}`;
+    
+    // Latency mock for visual effect
+    const latEl = document.getElementById('sys-latency');
+    if(latEl) latEl.textContent = (Math.random() * 5 + 2).toFixed(1) + ' ms';
+    
+    // TPS mock
+    const tpsEl = document.getElementById('sys-tps');
+    if(tpsEl) tpsEl.textContent = (Math.random() * 50 + 10).toFixed(0);
+}, 1000);
+

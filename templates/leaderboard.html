@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard · FraudSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🏆 SUPREME COURT ARENA</h1>
+  <div class="page-sub">8-MODEL ENSEMBLE RANKINGS & CONSENSUS VOTING</div>
+</div>
+
+<div class="predict-panel" style="margin-bottom: 20px;">
+    <h2 style="margin-top:0; color:var(--cyan); border-bottom: 1px solid var(--border2); padding-bottom: 10px;">GLOBAL LEADERBOARD (Ranked by PR-AUC)</h2>
+    <div style="overflow-x:auto;">
+        <table class="batch-table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>RANK</th>
+                    <th>MODEL</th>
+                    <th>PR-AUC</th>
+                    <th>ROC-AUC</th>
+                    <th>F1 SCORE</th>
+                    <th>LATENCY</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in leaderboard %}
+                <tr style="{% if row.model == active %}background:rgba(0,255,159,0.1); border-left: 3px solid var(--neon);{% endif %}">
+                    <td style="color:var(--muted)">#{{ row.rank }}</td>
+                    <td style="font-weight:bold; color:{% if row.model == active %}var(--neon){% else %}white{% endif %};">
+                        {{ row.model }}
+                        {% if row.model == active %}<span style="font-size:0.6rem; margin-left:8px; border:1px solid var(--neon); padding:2px 4px; border-radius:3px;">ACTIVE</span>{% endif %}
+                    </td>
+                    <td style="color:var(--neon)">{{ row.pr_auc }}</td>
+                    <td style="color:var(--cyan)">{{ row.roc_auc }}</td>
+                    <td>{{ row.f1_score }}</td>
+                    <td style="color:var(--amber)">{{ row.latency_ms }} ms</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card" style="grid-column: span 2;">
+        <div class="kpi-label" style="color:var(--cyan)">CONSENSUS MECHANISM</div>
+        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 10px; line-height: 1.5;">
+            FraudSentinel v3 uses a <span style="color:white;">Supreme Court Voting</span> approach. 
+            Instead of relying on a single algorithm, all active models evaluate the transaction simultaneously. 
+            Final judgment requires a majority consensus, significantly reducing False Positives and evading adversarial attacks.
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-value" style="color:var(--neon)">8</div>
+        <div class="kpi-label">Active Models</div>
+    </div>
+</div>
+
+<script>
+// Will add global changeActiveModel function in dashboard.js
+</script>
+{% endblock %}

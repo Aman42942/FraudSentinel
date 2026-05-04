@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% block title %}Upload Portal · FraudSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📁 UNIVERSAL UPLOAD PORTAL</h1>
+  <div class="page-sub">CSV · JSON · EXCEL · ANY FORMAT · XGBoost INSTANT SCAN</div>
+</div>
+
+<div class="sec"><h2>Supported Formats</h2></div>
+<div class="kpi-grid">
+  <div class="kpi-card"><div class="kpi-value" style="font-size:1.8rem;">📄</div><div class="kpi-label">CSV Files</div></div>
+  <div class="kpi-card"><div class="kpi-value" style="font-size:1.8rem;">📊</div><div class="kpi-label">Excel (.xlsx)</div></div>
+  <div class="kpi-card"><div class="kpi-value" style="font-size:1.8rem;">🔷</div><div class="kpi-label">JSON Files</div></div>
+  <div class="kpi-card"><div class="kpi-value" id="up-total">0</div><div class="kpi-label">Rows Scanned</div></div>
+  <div class="kpi-card"><div class="kpi-value" id="up-fraud" style="color:var(--red)">0</div><div class="kpi-label">Threats Found</div></div>
+  <div class="kpi-card"><div class="kpi-value" id="up-rate">0%</div><div class="kpi-label">Fraud Rate</div></div>
+</div>
+
+<div class="sec"><h2>Upload Your Data File</h2></div>
+<div class="predict-panel">
+
+  <!-- Drop Zone -->
+  <div class="drop-zone" id="drop-zone"
+       onclick="document.getElementById('up-file').click()"
+       ondragover="event.preventDefault();this.classList.add('drag-over')"
+       ondragleave="this.classList.remove('drag-over')"
+       ondrop="handleDrop(event)">
+    <div style="font-size:3rem;margin-bottom:12px;">⬆</div>
+    <strong style="font-size:1rem;color:var(--neon);">Drag & Drop Your File Here</strong>
+    <div style="color:var(--muted);margin-top:8px;font-size:.78rem;">
+      Supports: CSV · Excel (.xlsx / .xls) · JSON
+    </div>
+    <div id="up-filename" style="color:var(--cyan);margin-top:10px;font-size:.78rem;"></div>
+    <input type="file" id="up-file" accept=".csv,.xlsx,.xls,.json" style="display:none"
+           onchange="onFileSelect(this)"/>
+  </div>
+
+  <!-- Controls -->
+  <div style="display:flex;align-items:center;gap:16px;margin-top:18px;flex-wrap:wrap;">
+    <div class="threshold-row" style="flex:1;margin:0;">
+      <label>Detection Threshold</label>
+      <input type="range" id="up-threshold" min="0.1" max="0.9" step="0.01" value="0.5"
+             oninput="document.getElementById('up-thr-val').textContent=parseFloat(this.value).toFixed(2)"/>
+      <div class="threshold-val" id="up-thr-val">0.50</div>
+    </div>
+    <button class="btn btn-cyber" id="up-btn" onclick="runUpload()" disabled>⚡ SCAN FILE</button>
+    <button class="btn-feed" onclick="downloadResults()" id="dl-btn" style="display:none">⬇ DOWNLOAD CSV</button>
+    <a href="/api/export-pdf" class="btn-feed" style="text-decoration:none;">📄 PDF REPORT</a>
+  </div>
+
+  <!-- Progress Bar -->
+  <div id="up-progress" style="display:none;margin-top:16px;">
+    <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--cyan);margin-bottom:6px;">
+      SCANNING... <span id="up-prog-pct">0%</span>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;height:8px;overflow:hidden;">
+      <div id="up-prog-bar" style="height:100%;background:linear-gradient(90deg,var(--neon),var(--cyan));width:0%;transition:width .3s;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- External API Bridge -->
+<div class="sec"><h2>External API Bridge (Live Integration)</h2></div>
+<div class="predict-panel" style="margin-bottom: 20px;">
+    <p style="font-size:0.8rem; color:var(--muted); margin-top:0;">Fetch live transactions directly from an external banking API or database.</p>
+    <div style="display:flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+        <div class="input-group" style="flex:2; min-width: 250px;">
+            <label>External API Endpoint URL</label>
+            <input type="text" id="api-url" placeholder="https://api.externalbank.com/v1/transactions" style="width:100%; background:var(--bg3); border:1px solid var(--border2); color:white; padding:10px; font-family:var(--font-mono); margin-top:5px;">
+        </div>
+        <div class="input-group" style="flex:1; min-width: 200px;">
+            <label>API Key (Bearer Token)</label>
+            <input type="password" id="api-key" placeholder="sk_live_..." style="width:100%; background:var(--bg3); border:1px solid var(--border2); color:white; padding:10px; font-family:var(--font-mono); margin-top:5px;">
+        </div>
+        <button class="btn btn-cyber" id="api-btn" onclick="runApiFetch()" style="height: 42px; padding: 0 20px;">📡 FETCH & SCAN</button>
+    </div>
+</div>
+
+<!-- Results -->
+<div id="up-results" style="display:none;">
+  <div class="sec"><h2>Scan Results · <span id="up-scan-id" style="color:var(--cyan);"></span></h2></div>
+
+  <!-- Summary Cards -->
+  <div class="mini-stats-row" id="up-mini-stats"></div>
+
+  <!-- Fraud Rate Bar -->
+  <div class="predict-panel" style="padding:16px;margin-bottom:16px;">
+    <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted);margin-bottom:8px;">THREAT DISTRIBUTION</div>
+    <div style="display:flex;height:24px;border-radius:4px;overflow:hidden;border:1px solid var(--border2);">
+      <div id="legit-bar" style="background:rgba(0,255,159,.3);transition:width .5s;"></div>
+      <div id="fraud-bar" style="background:rgba(255,0,60,.5);transition:width .5s;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.65rem;margin-top:4px;">
+      <span style="color:var(--neon);">■ LEGITIMATE</span>
+      <span style="color:var(--red);">■ FRAUD</span>
+    </div>
+  </div>
+
+  <!-- Results Table -->
+  <div class="predict-panel" style="padding:0;overflow:hidden;">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border2);
+                font-family:var(--font-mono);font-size:.72rem;color:var(--cyan);">
+      TRANSACTION SCAN TABLE (first 100 rows)
+    </div>
+    <div style="overflow-x:auto;max-height:500px;overflow-y:auto;">
+      <table class="batch-table">
+        <thead>
+          <tr>
+            <th>#</th><th>PREDICTION</th><th>THREAT SCORE</th>
+            <th>TIME</th><th>AMOUNT</th><th>V1</th><th>V2</th>
+          </tr>
+        </thead>
+        <tbody id="up-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:36px;padding-top:14px;border-top:1px solid var(--border2);
+            font-family:var(--font-mono);font-size:.6rem;color:var(--muted);
+            text-align:center;opacity:.4;">
+  FRAUDSENTINEL · UNIVERSAL_UPLOAD · GROUP_01 · 2026
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedFile = null;
+let scanResults  = null;
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+}
+
+function onFileSelect(input) {
+  if (input.files[0]) setFile(input.files[0]);
+}
+
+function setFile(f) {
+  selectedFile = f;
+  document.getElementById('up-filename').textContent = '📎 ' + f.name + ' (' + (f.size/1024).toFixed(1) + ' KB)';
+  document.getElementById('up-btn').disabled = false;
+  document.getElementById('drop-zone').style.borderColor = 'var(--neon)';
+}
+
+async function runUpload() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('up-btn');
+  btn.disabled = true; btn.textContent = '⏳ SCANNING...';
+  document.getElementById('up-progress').style.display = 'block';
+  document.getElementById('up-results').style.display  = 'none';
+
+  // Animate progress bar
+  let pct = 0;
+  const bar = document.getElementById('up-prog-bar');
+  const pctEl = document.getElementById('up-prog-pct');
+  const timer = setInterval(() => {
+    pct = Math.min(pct + Math.random()*12, 90);
+    bar.style.width = pct + '%';
+    pctEl.textContent = Math.round(pct) + '%';
+  }, 200);
+
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+  fd.append('threshold', document.getElementById('up-threshold').value);
+
+  try {
+    const res  = await fetch('/api/upload-file', {method:'POST', body:fd});
+    const data = await res.json();
+    clearInterval(timer);
+    bar.style.width = '100%'; pctEl.textContent = '100%';
+
+    if (data.error) { alert('Error: ' + data.error); return; }
+    scanResults = data;
+    renderResults(data);
+    setTimeout(() => { document.getElementById('up-progress').style.display = 'none'; }, 800);
+  } catch(e) {
+    clearInterval(timer);
+    alert('Upload failed: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '⚡ SCAN FILE';
+  }
+}
+
+async function runApiFetch() {
+  const url = document.getElementById('api-url').value;
+  const key = document.getElementById('api-key').value;
+  if(!url) { alert("Please enter an API URL"); return; }
+  
+  const btn = document.getElementById('api-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> CONNECTING...';
+  
+  document.getElementById('up-progress').style.display = 'block';
+  document.getElementById('up-results').style.display  = 'none';
+
+  let pct = 0;
+  const bar = document.getElementById('up-prog-bar');
+  const pctEl = document.getElementById('up-prog-pct');
+  const timer = setInterval(() => {
+    pct = Math.min(pct + Math.random()*15, 95);
+    bar.style.width = pct + '%';
+    pctEl.textContent = Math.round(pct) + '%';
+  }, 300);
+
+  try {
+    const res = await fetch('/api/fetch-external', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            url: url,
+            api_key: key,
+            threshold: document.getElementById('up-threshold').value
+        })
+    });
+    const data = await res.json();
+    clearInterval(timer);
+    bar.style.width = '100%'; pctEl.textContent = '100%';
+
+    if (data.error) { alert('API Error: ' + data.error); return; }
+    scanResults = data;
+    renderResults(data);
+    setTimeout(() => { document.getElementById('up-progress').style.display = 'none'; }, 800);
+  } catch(e) {
+    clearInterval(timer);
+    alert('API Fetch failed: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.innerHTML = '📡 FETCH & SCAN';
+  }
+}
+
+
+function renderResults(data) {
+  // KPIs
+  document.getElementById('up-total').textContent = data.total.toLocaleString();
+  document.getElementById('up-fraud').textContent = data.fraud.toLocaleString();
+  document.getElementById('up-rate').textContent  = data.fraud_rate + '%';
+  document.getElementById('up-scan-id').textContent = 'SCAN #' + (data.scan_id || 'N/A');
+
+  // Mini stats
+  document.getElementById('up-mini-stats').innerHTML = `
+    <div class="mini-stat"><span>${data.total.toLocaleString()}</span><label>Total Rows</label></div>
+    <div class="mini-stat"><span style="color:var(--neon)">${data.legit.toLocaleString()}</span><label>Legitimate</label></div>
+    <div class="mini-stat"><span style="color:var(--red)">${data.fraud.toLocaleString()}</span><label>Fraud Found</label></div>
+    <div class="mini-stat"><span style="color:var(--amber)">${data.fraud_rate}%</span><label>Fraud Rate</label></div>
+  `;
+
+  // Distribution bar
+  const lp = 100 - data.fraud_rate;
+  document.getElementById('legit-bar').style.width = lp + '%';
+  document.getElementById('fraud-bar').style.width = data.fraud_rate + '%';
+
+  // Table
+  const tbody = document.getElementById('up-table-body');
+  tbody.innerHTML = '';
+  data.rows.forEach((r, i) => {
+    const isFraud = r.PREDICTION === 'FRAUD';
+    const row = document.createElement('tr');
+    if (isFraud) row.style.borderLeft = '3px solid var(--red)';
+    row.innerHTML = `
+      <td style="color:var(--muted)">${i+1}</td>
+      <td><span class="badge ${isFraud?'badge-fraud':'badge-safe'}">${r.PREDICTION}</span></td>
+      <td style="color:${isFraud?'var(--red)':'var(--neon)'}">${(r.THREAT_SCORE*100).toFixed(1)}%</td>
+      <td>${r.Time !== undefined ? r.Time : '–'}</td>
+      <td>${r.Amount !== undefined ? '$'+parseFloat(r.Amount).toFixed(2) : '–'}</td>
+      <td>${r.V1 !== undefined ? parseFloat(r.V1).toFixed(3) : '–'}</td>
+      <td>${r.V2 !== undefined ? parseFloat(r.V2).toFixed(3) : '–'}</td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  document.getElementById('up-results').style.display = 'block';
+  document.getElementById('dl-btn').style.display = 'inline-block';
+}
+
+function downloadResults() {
+  if (!scanResults) return;
+  const rows = scanResults.rows;
+  const keys = Object.keys(rows[0]);
+  let csv = keys.join(',') + '\n';
+  rows.forEach(r => { csv += keys.map(k => r[k]).join(',') + '\n'; });
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'fraudsentinel_scan.csv';
+  a.click();
+}
+</script>
+{% endblock %}

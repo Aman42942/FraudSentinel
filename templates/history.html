@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}History · FraudSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📜 PERSISTENT LEDGER</h1>
+  <div class="page-sub">IMMUTABLE RECORD OF ALL SCANNED TRANSACTIONS</div>
+</div>
+
+<div class="kpi-grid" style="margin-bottom: 20px;">
+    <div class="kpi-card">
+        <div class="kpi-value">{{ "{:,}".format(db_stats.total) }}</div>
+        <div class="kpi-label">Total Transactions</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-value" style="color:var(--red)">{{ "{:,}".format(db_stats.fraud) }}</div>
+        <div class="kpi-label">Threats Logged</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-value" style="color:var(--amber)">${{ "{:,.2f}".format(db_stats.total_amount) }}</div>
+        <div class="kpi-label">Value Protected</div>
+    </div>
+</div>
+
+<div class="predict-panel" style="margin-bottom: 20px; display:flex; gap: 10px; align-items:center;">
+    <input type="text" id="search-id" placeholder="Enter TX-ID to search..." style="flex:1; background:var(--bg3); border:1px solid var(--border2); color:white; padding:10px; font-family:var(--font-mono);">
+    <button class="btn btn-cyber" onclick="searchTx()">SEARCH</button>
+    <a href="/history" class="btn-feed" style="text-decoration:none;">CLEAR</a>
+    <a href="/history?pred=1" class="btn-feed" style="text-decoration:none; border-color:var(--red); color:var(--red);">FRAUD ONLY</a>
+</div>
+
+<div class="predict-panel" style="overflow-x:auto;">
+    <table class="batch-table" style="width: 100%;">
+        <thead>
+            <tr>
+                <th>TX ID</th>
+                <th>TIMESTAMP</th>
+                <th>AMOUNT</th>
+                <th>MODEL</th>
+                <th>PROBABILITY</th>
+                <th>VERDICT</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr style="{% if row.prediction == 1 %}border-left: 3px solid var(--red); background:rgba(255,0,60,0.05);{% endif %}">
+                <td style="color:var(--cyan)">{{ row.tx_id }}</td>
+                <td style="color:var(--muted); font-size:0.75rem;">{{ row.timestamp }}</td>
+                <td>${{ "{:,.2f}".format(row.amount) }}</td>
+                <td style="font-size:0.75rem; color:var(--muted)">{{ row.model_used }}</td>
+                <td style="color:{% if row.prediction == 1 %}var(--red){% else %}var(--neon){% endif %}">{{ "%.2f"|format(row.probability * 100) }}%</td>
+                <td><span class="badge {% if row.prediction == 1 %}badge-fraud{% else %}badge-safe{% endif %}">{% if row.prediction == 1 %}FRAUD{% else %}LEGIT{% endif %}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center; color:var(--muted); padding: 20px;">No records found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div style="display:flex; justify-content:space-between; margin-top: 15px;">
+    {% if page > 1 %}
+    <a href="/history?page={{ page - 1 }}" class="btn-feed" style="text-decoration:none;">◀ PREV PAGE</a>
+    {% else %}
+    <div></div>
+    {% endif %}
+    
+    <span style="color:var(--muted); font-size:0.8rem;">PAGE {{ page }}</span>
+    
+    {% if rows|length == per_page %}
+    <a href="/history?page={{ page + 1 }}" class="btn-feed" style="text-decoration:none;">NEXT PAGE ▶</a>
+    {% else %}
+    <div></div>
+    {% endif %}
+</div>
+
+<script>
+function searchTx() {
+    const id = document.getElementById('search-id').value;
+    if(!id) return;
+    fetch('/api/history/search?id=' + id)
+    .then(r => r.json())
+    .then(data => {
+        if(data.error) alert(data.error);
+        else {
+            document.querySelector('tbody').innerHTML = `
+                <tr style="${data.prediction===1 ? 'border-left: 3px solid var(--red); background:rgba(255,0,60,0.05);':''}">
+                    <td style="color:var(--cyan)">${data.tx_id}</td>
+                    <td style="color:var(--muted); font-size:0.75rem;">${data.timestamp}</td>
+                    <td>$${data.amount.toFixed(2)}</td>
+                    <td style="font-size:0.75rem; color:var(--muted)">${data.model_used}</td>
+                    <td style="color:${data.prediction===1 ? 'var(--red)':'var(--neon)'}">${(data.probability*100).toFixed(2)}%</td>
+                    <td><span class="badge ${data.prediction===1 ? 'badge-fraud':'badge-safe'}">${data.prediction===1?'FRAUD':'LEGIT'}</span></td>
+                </tr>
+            `;
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -3,13 +3,19 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>{% block title %}FraudSentinel{% endblock %}</title>
-  <meta name="description" content="FraudSentinel — World-class AI fraud detection. Group 1 ML Capstone 2026."/>
+  <title>{% block title %}FraudSentinel v3.0{% endblock %}</title>
+  <meta name="description" content="FraudSentinel — World-class AI fraud detection ecosystem."/>
   <link rel="stylesheet" href="{{ url_for('static',filename='css/cyber.css') }}"/>
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
   <script src="{{ url_for('static',filename='js/dashboard.js') }}" defer></script>
 </head>
 <body>
+<!-- Global Alert Banner -->
+<div id="global-alert-banner" class="global-alert hidden">
+  <span class="alert-icon">⚠️</span>
+  <span id="global-alert-text">CRITICAL THREAT DETECTED</span>
+</div>
+
 <div class="wrapper">
 
   <!-- ── Sidebar ────────────────────────────────────────────── -->
@@ -17,59 +23,113 @@
     <div class="sidebar-logo">
       <span class="logo-icon">⚡</span>
       <div class="logo-title">FRAUD SENTINEL</div>
-      <div class="logo-sub">CYBER · EDITION · v2.0</div>
+      <div class="logo-sub">CYBER · EDITION · v3.0</div>
     </div>
 
-    <div class="nav-label">Main</div>
+    <!-- Model Switcher -->
+    <div class="model-switcher" style="padding: 0 20px 15px 20px; border-bottom: 1px solid var(--border2); margin-bottom: 15px;">
+        <label style="font-size: 0.7rem; color: var(--muted); display: block; margin-bottom: 5px;">ACTIVE ENGINE</label>
+        <select id="global-model-select" onchange="changeActiveModel(this.value)" style="width: 100%; background: var(--bg2); color: var(--neon); border: 1px solid var(--border2); padding: 5px; font-family: var(--font-mono); font-size: 0.8rem; cursor: pointer;">
+            <option value="XGBoost">XGBoost (Primary)</option>
+            <option value="LightGBM">LightGBM</option>
+            <option value="CatBoost">CatBoost</option>
+            <option value="Random Forest">Random Forest</option>
+            <option value="Logistic Regression">Logistic Regression</option>
+            <option value="SVM">SVM</option>
+            <option value="MLP Neural Network">Neural Network</option>
+            <option value="Isolation Forest">Isolation Forest</option>
+        </select>
+    </div>
+
+    <div class="nav-label">Command Center</div>
     <ul class="nav-links">
       <li>
-        <a href="{{ url_for('index') }}"
-           class="{{ 'active' if request.endpoint == 'index' }}">
+        <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}">
           <span class="nav-icon">🛡️</span> Dashboard
         </a>
       </li>
       <li>
-        <a href="{{ url_for('eda') }}"
-           class="{{ 'active' if request.endpoint == 'eda' }}">
-          <span class="nav-icon">📊</span> Data Analysis
+        <a href="{{ url_for('eda') }}" class="{{ 'active' if request.endpoint == 'eda' }}">
+          <span class="nav-icon">📊</span> Data Recon
         </a>
       </li>
       <li>
-        <a href="{{ url_for('metrics_page') }}"
-           class="{{ 'active' if request.endpoint == 'metrics_page' }}">
-          <span class="nav-icon">📈</span> Model Metrics
+        <a href="{{ url_for('leaderboard') }}" class="{{ 'active' if request.endpoint == 'leaderboard' }}">
+          <span class="nav-icon">🏆</span> Model Arena
         </a>
       </li>
       <li>
-        <a href="{{ url_for('xai') }}"
-           class="{{ 'active' if request.endpoint == 'xai' }}">
-          <span class="nav-icon">🔍</span> Explainability
+        <a href="{{ url_for('metrics_page') }}" class="{{ 'active' if request.endpoint == 'metrics_page' }}">
+          <span class="nav-icon">📈</span> Neural Metrics
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('xai') }}" class="{{ 'active' if request.endpoint == 'xai' }}">
+          <span class="nav-icon">🧠</span> Explainability
         </a>
       </li>
     </ul>
 
-    <div class="nav-label" style="margin-top:16px;">Tools</div>
+    <div class="nav-label" style="margin-top:16px;">Ecosystem</div>
     <ul class="nav-links">
       <li>
-        <a href="{{ url_for('simulate') }}"
-           class="{{ 'active' if request.endpoint == 'simulate' }}">
-          <span class="nav-icon">⚙️</span> Simulator
+        <a href="{{ url_for('upload') }}" class="{{ 'active' if request.endpoint == 'upload' }}">
+          <span class="nav-icon">📁</span> Universal Upload
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('history') }}" class="{{ 'active' if request.endpoint == 'history' }}">
+          <span class="nav-icon">📜</span> Fraud Ledger
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('simulate') }}" class="{{ 'active' if request.endpoint == 'simulate' }}">
+          <span class="nav-icon">⚙️</span> Live Simulator
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('adversarial') }}" class="{{ 'active' if request.endpoint == 'adversarial' }}">
+          <span class="nav-icon">🧪</span> Hacker Sandbox
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('api_docs') }}" class="{{ 'active' if request.endpoint == 'api_docs' }}">
+          <span class="nav-icon">📡</span> Public API v1
         </a>
       </li>
     </ul>
 
     <div class="sidebar-footer">
       GROUP_01 :: ML_CAPSTONE_2026<br/>
-      ABHISHEK · AMAN · AMIT · ANKIT<br/>
-      XGBoost + SMOTE + SHAP
+      8-MODEL ENSEMBLE ENGINE
     </div>
   </aside>
 
   <!-- ── Main ───────────────────────────────────────────────── -->
   <main class="main">
+    <!-- Top Status Bar -->
+    <div class="top-status-bar">
+        <div class="status-item"><span class="status-dot green"></span> SYSTEM ONLINE</div>
+        <div class="status-item">UPTIME: <span id="sys-uptime">00:00:00</span></div>
+        <div class="status-item">LATENCY: <span id="sys-latency" style="color:var(--cyan)">-- ms</span></div>
+        <div class="status-item">TPS: <span id="sys-tps" style="color:var(--neon)">--</span></div>
+    </div>
+    
     {% block content %}{% endblock %}
   </main>
 
+</div>
+
+<!-- Cyber Terminal (Fixed Bottom Right) -->
+<div id="cyber-terminal" class="cyber-terminal">
+    <div class="terminal-header" onclick="toggleTerminal()">
+        <span>>_ INTELLIGENCE_LOG</span>
+        <span id="term-toggle-icon">▼</span>
+    </div>
+    <div id="terminal-content" class="terminal-content">
+        <div class="term-line sys">INIT FraudSentinel Protocol v3.0... OK</div>
+        <div class="term-line sys">Awaiting data stream...</div>
+    </div>
 </div>
 
 <!-- Toast Container -->

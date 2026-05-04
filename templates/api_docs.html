@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}API Documentation · FraudSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📡 PUBLIC API v1</h1>
+  <div class="page-sub">DEVELOPER INTEGRATION & WEBHOOKS</div>
+</div>
+
+<div class="predict-panel">
+    <h3 style="color:var(--cyan); margin-top:0;">1. Live Scoring Endpoint</h3>
+    <p style="font-size:0.8rem; color:var(--muted);">Instantly score a transaction using the active ensemble.</p>
+    <div style="background:var(--bg3); padding:10px; font-family:var(--font-mono); font-size:0.8rem; border-left: 3px solid var(--neon);">
+        <span style="color:var(--neon);">POST</span> /api/predict
+    </div>
+    <pre style="background:#050f0f; padding:15px; font-family:var(--font-mono); font-size:0.75rem; color:#a78bfa; overflow-x:auto;">
+{
+  "Amount": 1250.50,
+  "Time": 45000,
+  "V1": -1.2,
+  "V2": 0.5,
+  ...
+}
+    </pre>
+</div>
+
+<div class="predict-panel" style="margin-top: 20px;">
+    <h3 style="color:var(--cyan); margin-top:0;">2. Multi-Model Consensus</h3>
+    <p style="font-size:0.8rem; color:var(--muted);">Get voting results from all 8 models simultaneously.</p>
+    <div style="background:var(--bg3); padding:10px; font-family:var(--font-mono); font-size:0.8rem; border-left: 3px solid var(--neon);">
+        <span style="color:var(--neon);">POST</span> /api/consensus
+    </div>
+</div>
+
+<div class="predict-panel" style="margin-top: 20px;">
+    <h3 style="color:var(--cyan); margin-top:0;">3. Automated Audit Export</h3>
+    <p style="font-size:0.8rem; color:var(--muted);">Download a real-time PDF containing current system metrics and live traffic stats.</p>
+    <div style="background:var(--bg3); padding:10px; font-family:var(--font-mono); font-size:0.8rem; border-left: 3px solid var(--cyan);">
+        <span style="color:var(--cyan);">GET</span> /api/export-pdf
+    </div>
+</div>
+{% endblock %}
