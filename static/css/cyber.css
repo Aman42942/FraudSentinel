@@ -51,7 +51,8 @@ body {
 /* ── Sidebar ──────────────────────────────────────────────── */
 .sidebar {
   width: 240px;
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
   background: var(--bg2);
   border-right: 1px solid var(--border);
   display: flex;

@@ -210,19 +210,7 @@ def set_active_model(name):
     conn.close()
 
 
-def get_webhooks():
-    conn = get_conn()
-    rows = conn.execute("SELECT * FROM webhooks WHERE active=1").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
 
-
-def add_webhook(url):
-    conn = get_conn()
-    conn.execute("INSERT INTO webhooks (url, created_at) VALUES (?,?)",
-                 (url, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    conn.commit()
-    conn.close()
 
 # ── MANAGEMENT FUNCTIONS ──
 
