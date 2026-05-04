@@ -445,6 +445,12 @@ def api_predict():
     record_transaction()
     data      = request.get_json()
     row       = {f: float(data.get(f, 0.0)) for f in feat_names}
+    
+    # ── ADVANCED CYBER TELEMETRY ──
+    ip_addr   = request.remote_addr
+    device_id = data.get("device_id", "UNKNOWN_BROWSER")
+    location  = data.get("location", "REMOTE_ACCESS")
+    
     X_in      = pd.DataFrame([row])[feat_names]
     prob      = float(xgb_model.predict_proba(X_in)[0,1])
     threshold = float(data.get("threshold", 0.5))
@@ -465,7 +471,8 @@ def api_predict():
 
     # NEW: Persist manual prediction to database
     tx_id = f"MANUAL-{uuid.uuid4().hex[:6].upper()}"
-    insert_tx(tx_id, row["Amount"], "MANUAL_CHECK", get_active_model(), prob, pred, row, source="manual")
+    insert_tx(tx_id, row["Amount"], "MANUAL_CHECK", get_active_model(), prob, pred, row, 
+              source="manual", ip=ip_addr, device=device_id, loc=location)
     
     add_sys_log(f"Inference request processed. Risk Score: {prob*100:.2f}%", "warn" if pred==1 else "info")
     return jsonify({"probability": round(prob,4), "prediction": pred, "id": tx_id})
@@ -505,8 +512,15 @@ def api_live_tx():
     tx_id = f"TX-{uuid.uuid4().hex[:6].upper()}"
     tx_type = random.choice(["TRANSFER","PAYMENT","WITHDRAWAL","DEPOSIT"])
     
-    # NEW: Persist live transaction to database
-    insert_tx(tx_id, amount, tx_type, get_active_model(), prob, pred, row, source="live")
+    # ── CYBER RECON (MOCKED) ──
+    mock_ips = ["192.168.1.45", "45.12.89.22", "103.44.12.5", "89.201.12.44"]
+    ip_choice = random.choice(mock_ips)
+    mock_locs = ["London, UK", "New York, USA", "Mumbai, IN", "Tokyo, JP"]
+    loc_choice = random.choice(mock_locs)
+    
+    # NEW: Persist live transaction to database with cyber signals
+    insert_tx(tx_id, amount, tx_type, get_active_model(), prob, pred, row, 
+              source="live", ip=ip_choice, device="IPHONE_SAFARI", loc=loc_choice)
 
     entry = {
         "id":     tx_id,
@@ -684,6 +698,10 @@ def api_docs():
 @app.route("/rules")
 def rules_page():
     return render_template("rules.html", rules=get_rules())
+
+@app.route("/cyber-recon")
+def cyber_recon():
+    return render_template("cyber_recon.html")
 
 @app.route("/api/rules/add", methods=["POST"])
 def api_add_rule():

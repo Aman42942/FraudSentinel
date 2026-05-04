@@ -33,7 +33,10 @@ def init_db():
             features    TEXT,
             timestamp   TEXT,
             source      TEXT DEFAULT 'live',
-            status      TEXT DEFAULT 'PENDING'
+            status      TEXT DEFAULT 'PENDING',
+            ip_address  TEXT,
+            device_id   TEXT,
+            location    TEXT
         )
     """)
 
@@ -87,17 +90,20 @@ def init_db():
 
 
 def insert_tx(tx_id, amount, tx_type, model_used, score, prediction,
-              features_dict=None, source="live"):
+              features_dict=None, source="live", ip=None, device=None, loc=None):
     conn = get_conn()
     conn.execute("""
-        INSERT OR IGNORE INTO transactions
-        VALUES (?,?,?,?,?,?,?,?,?)
+        INSERT OR IGNORE INTO transactions (
+            id, amount, tx_type, model_used, score, prediction, 
+            features, timestamp, source, status, ip_address, device_id, location
+        )
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
     """, (
         tx_id, amount, tx_type, model_used,
         round(score, 5), int(prediction),
         json.dumps(features_dict or {}),
         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        source,
+        source, 'PENDING', ip, device, loc
     ))
     conn.commit()
     conn.close()

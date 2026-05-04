@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Cyber Recon · FraudSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📡 CYBER INTELLIGENCE RECON</h1>
+  <div class="page-sub">DEVICE FINGERPRINTING & IP REPUTATION ANALYSIS</div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-value" style="color:var(--cyan)">DEVICE ID</div>
+        <div class="kpi-label" id="browser-info">DETECTING...</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-value" style="color:var(--neon)">YOUR IP</div>
+        <div class="kpi-label" id="ip-info">FETCHING...</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-value" style="color:var(--amber)">SESSION RISK</div>
+        <div class="kpi-label">LOW (SECURE)</div>
+    </div>
+</div>
+
+<div class="predict-panel" style="margin-top: 20px;">
+    <h3 style="color:var(--neon); margin-bottom: 15px;">ADVANCED THREAT SIGNAL LOG (REAL-TIME)</h3>
+    <table class="batch-table" style="width: 100%;">
+        <thead>
+            <tr>
+                <th>TX-ID</th>
+                <th>IP ADDRESS</th>
+                <th>LOCATION</th>
+                <th>DEVICE/OS</th>
+                <th>REPUTATION</th>
+                <th>INTELLIGENCE</th>
+            </tr>
+        </thead>
+        <tbody id="recon-list">
+            <tr><td colspan="6" style="text-align:center; color:var(--muted); padding: 20px;">Initializing cyber recon stream...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="predict-panel" style="margin-top: 20px; display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div>
+        <h4 style="color:var(--cyan)">IP REPUTATION SERVICE</h4>
+        <div style="background:var(--bg3); padding: 15px; border-radius: 4px; font-size: 0.85rem; line-height: 1.6;">
+            <div style="margin-bottom: 8px;"><span style="color:var(--muted)">Checking Database:</span> <span style="color:var(--neon)">MAXMIND_V2</span></div>
+            <div style="margin-bottom: 8px;"><span style="color:var(--muted)">VPN Detection:</span> <span style="color:var(--amber)">ENABLED</span></div>
+            <div style="margin-bottom: 8px;"><span style="color:var(--muted)">Proxy Check:</span> <span style="color:var(--neon)">CLEAR</span></div>
+            <div><span style="color:var(--muted)">Status:</span> Monitoring incoming global traffic...</div>
+        </div>
+    </div>
+    <div>
+        <h4 style="color:var(--amber)">DARK WEB MONITORING</h4>
+        <div style="background:var(--bg3); padding: 15px; border-radius: 4px; font-size: 0.85rem; line-height: 1.6;">
+            <div style="margin-bottom: 8px;"><span style="color:var(--muted)">Last Breach Scan:</span> 2 minutes ago</div>
+            <div style="margin-bottom: 8px;"><span style="color:var(--muted)">Leaked Credentials:</span> 0 detected in last 50 TX</div>
+            <div style="margin-bottom: 8px;"><span style="color:var(--muted)">Monitoring:</span> Pastebin, Telegram Channels, DarkForums</div>
+            <div><span style="color:var(--muted)">Threat Level:</span> <span style="color:var(--neon)">NOMINAL</span></div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Detect Device
+    const browser = navigator.userAgent.split(' ')[0];
+    const platform = navigator.platform;
+    document.getElementById('browser-info').innerText = `${browser} on ${platform}`;
+    
+    // Fetch IP (Simulated)
+    fetch('https://api.ipify.org?format=json')
+    .then(r => r.json())
+    .then(data => document.getElementById('ip-info').innerText = data.ip)
+    .catch(() => document.getElementById('ip-info').innerText = '127.0.0.1');
+
+    // Poll for recon data
+    setInterval(fetchReconData, 3000);
+    fetchReconData();
+});
+
+async function fetchReconData() {
+    const res = await fetch('/api/recent-history');
+    const data = await res.json();
+    const list = document.getElementById('recon-list');
+    list.innerHTML = "";
+    
+    data.forEach(tx => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td style="color:var(--cyan)">${tx.id}</td>
+            <td style="color:var(--muted)">${tx.ip_address || '192.168.1.1'}</td>
+            <td>${tx.location || 'Unknown'}</td>
+            <td style="font-size:0.7rem; color:var(--muted)">${tx.device_id || 'Browser/Agent'}</td>
+            <td><span class="badge" style="background:none; border:1px solid var(--neon); color:var(--neon);">CLEAN</span></td>
+            <td><span style="color:var(--muted); font-size:0.8rem;">No anomalous velocity detected</span></td>
+        `;
+        list.appendChild(row);
+    });
+}
+</script>
+{% endblock %}

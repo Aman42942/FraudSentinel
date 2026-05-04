@@ -107,6 +107,11 @@
         </a>
       </li>
       <li>
+        <a href="{{ url_for('cyber_recon') }}" class="{{ 'active' if request.endpoint == 'cyber_recon' }}">
+          <span class="nav-icon">📡</span> Cyber Recon
+        </a>
+      </li>
+      <li>
         <a href="{{ url_for('adversarial') }}" class="{{ 'active' if request.endpoint == 'adversarial' }}">
           <span class="nav-icon">🧪</span> Hacker Sandbox
         </a>
