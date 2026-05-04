@@ -470,25 +470,15 @@ def api_shap():
 
 @app.route("/api/live-tx")
 def api_live_tx():
-    """Generate and score a random synthetic transaction."""
+    """Stream a real transaction from the dataset."""
     record_transaction()
-    rng     = np.random.default_rng()
-    is_fraud = rng.random() < 0.08   # 8% fraud rate for demo excitement
-    amount  = float(rng.lognormal(2.0 if is_fraud else 3.5,
-                                  1.0 if is_fraud else 1.2))
-    amount  = round(min(amount, 25000), 2)
-    row     = {f: 0.0 for f in feat_names}
-    row["Amount"] = amount
-    row["Time"]   = float(rng.integers(0, 172800))
-
-    # PCA features
-    if is_fraud:
-        shifts = {"V1":-3.0,"V2":3.5,"V3":-4.0,"V4":4.2,"V10":2.3,"V12":-3.1,"V14":-4.5}
-        for v,s in shifts.items():
-            if v in row: row[v] = float(rng.normal(s, 0.8))
-    else:
-        for f in feat_names:
-            if f.startswith("V"): row[f] = float(rng.normal(0, 1))
+    if df_data is None or df_data.empty:
+        return jsonify({"error": "Real dataset not found. Cannot stream real transactions."}), 500
+        
+    # Pick a random row from the real dataset
+    real_row = df_data.sample(n=1).iloc[0]
+    amount   = float(real_row["Amount"])
+    row      = {f: float(real_row.get(f, 0.0)) for f in feat_names}
 
     X_in = pd.DataFrame([row])[feat_names]
     prob = float(xgb_model.predict_proba(X_in)[0,1])
@@ -613,22 +603,16 @@ def api_health():
 
 @app.route("/api/simulate-batch")
 def api_simulate_batch():
-    """Generate 50 transactions at once for the simulator page."""
+    """Pull 50 real transactions from the dataset for the simulator page."""
+    if df_data is None or df_data.empty:
+        return jsonify({"error": "Real dataset not found."}), 500
+        
     results = []
-    rng = np.random.default_rng()
-    for _ in range(50):
-        is_fraud = rng.random() < 0.08
-        amount   = round(float(rng.lognormal(2.0 if is_fraud else 3.5, 1.0)), 2)
-        row      = {f:0.0 for f in feat_names}
-        row["Amount"] = amount
-        row["Time"]   = float(rng.integers(0,172800))
-        if is_fraud:
-            shifts = {"V1":-3.0,"V2":3.5,"V3":-4.0,"V4":4.2,"V14":-4.5}
-            for v,s in shifts.items():
-                if v in row: row[v] = float(rng.normal(s,0.8))
-        else:
-            for f in feat_names:
-                if f.startswith("V"): row[f] = float(rng.normal(0,1))
+    sample_df = df_data.sample(n=min(50, len(df_data)))
+    
+    for idx, real_row in sample_df.iterrows():
+        amount = float(real_row["Amount"])
+        row = {f: float(real_row.get(f, 0.0)) for f in feat_names}
         X_in = pd.DataFrame([row])[feat_names]
         prob = float(xgb_model.predict_proba(X_in)[0,1])
         results.append({
