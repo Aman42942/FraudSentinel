@@ -85,6 +85,38 @@ def init_db():
     c.execute("INSERT OR IGNORE INTO settings VALUES ('active_model','XGBoost')")
     c.execute("INSERT OR IGNORE INTO settings VALUES ('auto_block_threshold','0.95')")
 
+    # SaaS: API Keys
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS api_keys (
+            api_key      TEXT PRIMARY KEY,
+            client_name  TEXT,
+            usage_count  INTEGER DEFAULT 0,
+            is_active    INTEGER DEFAULT 1,
+            created_at   TEXT
+        )
+    """)
+
+    # SaaS: Webhooks
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS webhooks (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            url         TEXT,
+            secret      TEXT,
+            is_active   INTEGER DEFAULT 1,
+            created_at  TEXT
+        )
+    """)
+
+    # Cyber: Velocity Logs (Rate Limiting)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS velocity_logs (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip_address  TEXT,
+            api_key     TEXT,
+            timestamp   REAL
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -218,6 +250,67 @@ def delete_rule(rule_id):
     conn.execute("DELETE FROM rules WHERE id=?", (rule_id,))
     conn.commit()
     conn.close()
+
+# ── SAAS & CYBER FUNCTIONS ──
+
+def generate_api_key(client_name):
+    import uuid
+    api_key = f"fs_live_{uuid.uuid4().hex}"
+    conn = get_conn()
+    conn.execute("INSERT INTO api_keys (api_key, client_name, created_at) VALUES (?,?,?)",
+                 (api_key, client_name, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+    conn.close()
+    return api_key
+
+def get_api_keys():
+    conn = get_conn()
+    rows = conn.execute("SELECT * FROM api_keys").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def validate_api_key(api_key):
+    conn = get_conn()
+    row = conn.execute("SELECT is_active FROM api_keys WHERE api_key=?", (api_key,)).fetchone()
+    if row and row['is_active']:
+        conn.execute("UPDATE api_keys SET usage_count = usage_count + 1 WHERE api_key=?", (api_key,))
+        conn.commit()
+        conn.close()
+        return True
+    conn.close()
+    return False
+
+def revoke_api_key(api_key):
+    conn = get_conn()
+    conn.execute("UPDATE api_keys SET is_active=0 WHERE api_key=?", (api_key,))
+    conn.commit()
+    conn.close()
+
+def get_webhooks():
+    conn = get_conn()
+    rows = conn.execute("SELECT * FROM webhooks WHERE is_active=1").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def check_velocity(ip_address, api_key=None, window_seconds=60, max_requests=100):
+    import time
+    now = time.time()
+    conn = get_conn()
+    
+    # Clean old logs
+    conn.execute("DELETE FROM velocity_logs WHERE timestamp < ?", (now - window_seconds,))
+    
+    # Log current request
+    conn.execute("INSERT INTO velocity_logs (ip_address, api_key, timestamp) VALUES (?,?,?)",
+                 (ip_address, api_key, now))
+    
+    # Check count
+    count = conn.execute("SELECT COUNT(*) FROM velocity_logs WHERE ip_address=? AND timestamp > ?",
+                         (ip_address, now - window_seconds)).fetchone()[0]
+    
+    conn.commit()
+    conn.close()
+    return count <= max_requests
 
 
 # Initialize on import

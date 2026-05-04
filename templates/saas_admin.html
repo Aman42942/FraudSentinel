@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Enterprise FaaS Admin · FraudSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🏢 ENTERPRISE B2B SAAS PORTAL</h1>
+  <div class="page-sub">API GATEWAY, WEBHOOK DISPATCHER & ACCESS MANAGEMENT</div>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+    <!-- API Keys Panel -->
+    <div class="predict-panel">
+        <h3 style="color:var(--cyan); margin-bottom: 15px;">API KEY MANAGEMENT</h3>
+        <div style="display:flex; gap:10px; margin-bottom: 15px;">
+            <input type="text" id="client-name" placeholder="Client Name (e.g. Stripe, Acme Corp)" style="flex:1; background:var(--bg3); border:1px solid var(--border2); color:white; padding:10px; font-family:var(--font-mono);">
+            <button class="btn btn-cyber" onclick="generateKey()">GENERATE KEY</button>
+        </div>
+        
+        <table class="batch-table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>CLIENT</th>
+                    <th>API KEY</th>
+                    <th>USAGE</th>
+                    <th>STATUS</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key in api_keys %}
+                <tr>
+                    <td style="color:var(--cyan)">{{ key.client_name }}</td>
+                    <td style="font-size:0.75rem; color:var(--muted)"><code>{{ key.api_key[:12] }}...{{ key.api_key[-4:] }}</code></td>
+                    <td>{{ key.usage_count }} reqs</td>
+                    <td>
+                        {% if key.is_active %}
+                        <span class="badge badge-safe">ACTIVE</span>
+                        <button onclick="revokeKey('{{ key.api_key }}')" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:0.7rem;">[REVOKE]</button>
+                        {% else %}
+                        <span class="badge badge-fraud">REVOKED</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="text-align:center; color:var(--muted); padding: 20px;">No API Keys generated yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Webhooks Panel -->
+    <div class="predict-panel">
+        <h3 style="color:var(--neon); margin-bottom: 15px;">EVENT-DRIVEN WEBHOOKS</h3>
+        <div style="display:flex; gap:10px; margin-bottom: 15px;">
+            <input type="text" id="webhook-url" placeholder="https://client-server.com/alerts" style="flex:1; background:var(--bg3); border:1px solid var(--border2); color:white; padding:10px; font-family:var(--font-mono);">
+            <button class="btn btn-cyber" onclick="addWebhook()" style="border-color:var(--neon); color:var(--neon);">ADD ENDPOINT</button>
+        </div>
+        
+        <table class="batch-table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>ENDPOINT URL</th>
+                    <th>STATUS</th>
+                    <th>CREATED</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for wh in webhooks %}
+                <tr>
+                    <td style="color:var(--cyan); font-size:0.8rem;">{{ wh.url }}</td>
+                    <td><span class="badge badge-safe">LISTENING</span></td>
+                    <td style="color:var(--muted); font-size:0.75rem;">{{ wh.created_at }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" style="text-align:center; color:var(--muted); padding: 20px;">No Webhooks configured.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 15px; font-size: 0.8rem; color: var(--muted); background:var(--bg3); padding: 10px; border-left: 3px solid var(--neon);">
+            <strong>Webhook Payload Format:</strong>
+            <pre style="margin:5px 0 0 0; color:var(--cyan);"><code>{
+  "id": "MANUAL-A1B2C3",
+  "amount": 1250.00,
+  "prediction": 1,
+  "ip": "192.168.1.5"
+}</code></pre>
+        </div>
+    </div>
+
+</div>
+
+<script>
+async function generateKey() {
+    const client = document.getElementById('client-name').value;
+    if(!client) return alert('Enter a client name');
+    const res = await fetch('/api/keys/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({client_name: client})
+    });
+    const data = await res.json();
+    if(data.status === 'ok') {
+        alert("SAVE THIS KEY: " + data.api_key + "\n\nIt will only be shown completely once.");
+        location.reload();
+    }
+}
+
+async function revokeKey(key) {
+    if(!confirm("Revoke this key? All API calls using it will fail immediately.")) return;
+    const res = await fetch('/api/keys/revoke', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({api_key: key})
+    });
+    const data = await res.json();
+    if(data.status === 'ok') location.reload();
+}
+
+async function addWebhook() {
+    const url = document.getElementById('webhook-url').value;
+    if(!url || !url.startsWith('http')) return alert('Enter a valid HTTP/HTTPS URL');
+    const res = await fetch('/api/webhooks/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({url: url})
+    });
+    const data = await res.json();
+    if(data.status === 'ok') location.reload();
+}
+</script>
+{% endblock %}

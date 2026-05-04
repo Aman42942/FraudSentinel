@@ -14,8 +14,13 @@ import plotly, plotly.graph_objects as go
 from flask import Flask, render_template, request, jsonify, Response
 from src.database import (
     insert_tx, get_history, search_by_id, get_db_stats,
-    get_active_model, set_active_model, insert_batch
+    get_active_model, set_active_model, insert_batch,
+    get_rules, add_rule, delete_rule, update_tx_status,
+    generate_api_key, get_api_keys, validate_api_key, revoke_api_key,
+    get_webhooks, check_velocity
 )
+from functools import wraps
+import threading
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
@@ -437,10 +442,44 @@ def simulate():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  CYBER DEFENSE LAYER (SAAS API)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def require_api_key(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Allow internal UI calls (no API key in header) or validate provided key
+        api_key = request.headers.get("X-API-KEY")
+        if api_key:
+            if not validate_api_key(api_key):
+                return jsonify({"error": "Invalid or Revoked API Key"}), 403
+        
+        # Velocity Shield (Rate Limiting)
+        client_ip = request.remote_addr
+        if not check_velocity(client_ip, api_key, window_seconds=60, max_requests=100):
+            add_sys_log(f"VELOCITY SHIELD TRIGGERED: IP {client_ip} blocked (Rate Limit Exceeded)", "err")
+            return jsonify({"error": "Velocity Shield Active: Rate Limit Exceeded. Try again later."}), 429
+            
+        return f(*args, **kwargs)
+    return decorated_function
+
+def dispatch_webhooks(tx_data):
+    def _send():
+        webhooks = get_webhooks()
+        for wh in webhooks:
+            try:
+                requests.post(wh["url"], json=tx_data, timeout=3)
+                add_sys_log(f"Webhook dispatched successfully to {wh['url']}", "info")
+            except:
+                add_sys_log(f"Webhook failed to deliver to {wh['url']}", "err")
+    threading.Thread(target=_send).start()
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  REST API
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/api/predict", methods=["POST"])
+@require_api_key
 def api_predict():
     record_transaction()
     data      = request.get_json()
@@ -474,8 +513,13 @@ def api_predict():
     insert_tx(tx_id, row["Amount"], "MANUAL_CHECK", get_active_model(), prob, pred, row, 
               source="manual", ip=ip_addr, device=device_id, loc=location)
     
+    # SAAS: Dispatch Webhooks if Fraud
+    tx_data = {"id": tx_id, "amount": row["Amount"], "probability": prob, "prediction": pred, "ip": ip_addr}
+    if pred == 1:
+        dispatch_webhooks(tx_data)
+        
     add_sys_log(f"Inference request processed. Risk Score: {prob*100:.2f}%", "warn" if pred==1 else "info")
-    return jsonify({"probability": round(prob,4), "prediction": pred, "id": tx_id})
+    return jsonify(tx_data)
 
 
 @app.route("/api/shap", methods=["POST"])
@@ -725,6 +769,34 @@ def analytics_page():
     db_stats = get_db_stats()
     # Simple trend data (mocked for now, but pulling from real counts)
     return render_template("analytics.html", stats=db_stats)
+
+@app.route("/saas-admin")
+def saas_admin():
+    return render_template("saas_admin.html", api_keys=get_api_keys(), webhooks=get_webhooks())
+
+@app.route("/api/keys/generate", methods=["POST"])
+def api_generate_key():
+    data = request.get_json()
+    client_name = data.get("client_name", "Unknown Client")
+    api_key = generate_api_key(client_name)
+    return jsonify({"api_key": api_key, "status": "ok"})
+
+@app.route("/api/keys/revoke", methods=["POST"])
+def api_revoke_key():
+    data = request.get_json()
+    revoke_api_key(data["api_key"])
+    return jsonify({"status": "ok"})
+
+@app.route("/api/webhooks/add", methods=["POST"])
+def api_add_webhook():
+    from src.database import get_conn
+    data = request.get_json()
+    conn = get_conn()
+    conn.execute("INSERT INTO webhooks (url, created_at) VALUES (?,?)",
+                 (data["url"], datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "ok"})
 
 # ── NEW API ENDPOINTS ─────────────────────────────────────────────────────────
 

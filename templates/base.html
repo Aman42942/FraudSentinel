@@ -112,6 +112,11 @@
         </a>
       </li>
       <li>
+        <a href="{{ url_for('saas_admin') }}" class="{{ 'active' if request.endpoint == 'saas_admin' }}">
+          <span class="nav-icon">🏢</span> SaaS Portal
+        </a>
+      </li>
+      <li>
         <a href="{{ url_for('adversarial') }}" class="{{ 'active' if request.endpoint == 'adversarial' }}">
           <span class="nav-icon">🧪</span> Hacker Sandbox
         </a>
