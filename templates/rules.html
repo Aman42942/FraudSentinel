@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Rules Engine · FraudSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🛡️ RULES ENGINE</h1>
+  <div class="page-sub">MANUAL FRAUD PREVENTION HEURISTICS & AUTO-BLOCKING</div>
+</div>
+
+<div class="predict-panel">
+    <h3 style="color:var(--cyan); margin-bottom: 15px;">ADD NEW SECURITY RULE</h3>
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px;">
+        <input type="text" id="rule-name" placeholder="Rule Name (e.g. High Value Block)" style="background:var(--bg3); border:1px solid var(--border2); color:white; padding:10px; font-family:var(--font-mono);">
+        <input type="text" id="rule-cond" placeholder="Condition (e.g. Amount > 10000)" style="background:var(--bg3); border:1px solid var(--border2); color:white; padding:10px; font-family:var(--font-mono);">
+        <select id="rule-action" style="background:var(--bg3); border:1px solid var(--border2); color:white; padding:10px; font-family:var(--font-mono);">
+            <option value="BLOCK">AUTO-BLOCK (MARK AS FRAUD)</option>
+            <option value="FLAG">FLAG FOR REVIEW</option>
+        </select>
+        <button class="btn btn-cyber" onclick="addRule()">+ ADD RULE</button>
+    </div>
+    <div style="margin-top: 10px; font-size: 0.8rem; color: var(--muted);">
+        * Currently supports simple amount thresholds. Format: <code>Amount > [Value]</code>
+    </div>
+</div>
+
+<div class="predict-panel" style="margin-top: 20px;">
+    <h3 style="color:var(--neon); margin-bottom: 15px;">ACTIVE SECURITY POLICIES</h3>
+    <table class="batch-table" style="width: 100%;">
+        <thead>
+            <tr>
+                <th>RULE NAME</th>
+                <th>CONDITION</th>
+                <th>ACTION</th>
+                <th>CREATED</th>
+                <th>ACTIONS</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rule in rules %}
+            <tr>
+                <td style="color:var(--cyan)">{{ rule.name }}</td>
+                <td><code>{{ rule.condition }}</code></td>
+                <td><span class="badge {% if rule.action == 'BLOCK' %}badge-fraud{% else %}badge-safe{% endif %}" style="background:none; border:1px solid {% if rule.action == 'BLOCK' %}var(--red){% else %}var(--amber){% endif %}; color:{% if rule.action == 'BLOCK' %}var(--red){% else %}var(--amber){% endif %};">{{ rule.action }}</span></td>
+                <td style="color:var(--muted); font-size:0.8rem;">{{ rule.created_at }}</td>
+                <td>
+                    <button onclick="deleteRule({{ rule.id }})" style="background:none; border:none; color:var(--red); cursor:pointer; font-family:var(--font-mono);">[DELETE]</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center; color:var(--muted); padding: 20px;">No active manual rules. AI Engine is running solo.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+async function addRule() {
+    const name = document.getElementById('rule-name').value;
+    const condition = document.getElementById('rule-cond').value;
+    const action = document.getElementById('rule-action').value;
+    
+    if(!name || !condition) return alert('Please fill all fields');
+    
+    const res = await fetch('/api/rules/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, condition, action})
+    });
+    const data = await res.json();
+    if(data.status === 'ok') location.reload();
+}
+
+async function deleteRule(id) {
+    if(!confirm('Are you sure you want to delete this rule?')) return;
+    const res = await fetch('/api/rules/delete/' + id, { method: 'POST' });
+    const data = await res.json();
+    if(data.status === 'ok') location.reload();
+}
+</script>
+{% endblock %}

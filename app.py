@@ -450,6 +450,19 @@ def api_predict():
     threshold = float(data.get("threshold", 0.5))
     pred      = int(prob>=threshold)
     
+    # ── CHECK MANUAL RULES ──
+    rules = get_rules()
+    for rule in rules:
+        try:
+            # Simple rule evaluation (e.g., Amount > 5000)
+            if "Amount >" in rule["condition"]:
+                limit = float(rule["condition"].split(">")[1])
+                if row["Amount"] > limit:
+                    pred = 1
+                    prob = 1.0
+                    add_sys_log(f"MANUAL RULE TRIGGERED: {rule['name']}", "err")
+        except: pass
+
     # NEW: Persist manual prediction to database
     tx_id = f"MANUAL-{uuid.uuid4().hex[:6].upper()}"
     insert_tx(tx_id, row["Amount"], "MANUAL_CHECK", get_active_model(), prob, pred, row, source="manual")
@@ -667,6 +680,33 @@ def adversarial():
 @app.route("/api-docs")
 def api_docs():
     return render_template("api_docs.html")
+
+@app.route("/rules")
+def rules_page():
+    return render_template("rules.html", rules=get_rules())
+
+@app.route("/api/rules/add", methods=["POST"])
+def api_add_rule():
+    data = request.get_json()
+    add_rule(data["name"], data["condition"], data["action"])
+    return jsonify({"status": "ok"})
+
+@app.route("/api/rules/delete/<int:rule_id>", methods=["POST"])
+def api_delete_rule(rule_id):
+    delete_rule(rule_id)
+    return jsonify({"status": "ok"})
+
+@app.route("/api/history/update-status", methods=["POST"])
+def api_update_status():
+    data = request.get_json()
+    update_tx_status(data["id"], data["status"])
+    return jsonify({"status": "ok"})
+
+@app.route("/analytics")
+def analytics_page():
+    db_stats = get_db_stats()
+    # Simple trend data (mocked for now, but pulling from real counts)
+    return render_template("analytics.html", stats=db_stats)
 
 # ── NEW API ENDPOINTS ─────────────────────────────────────────────────────────
 

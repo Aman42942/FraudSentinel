@@ -32,7 +32,8 @@ def init_db():
             prediction  INTEGER,
             features    TEXT,
             timestamp   TEXT,
-            source      TEXT DEFAULT 'live'
+            source      TEXT DEFAULT 'live',
+            status      TEXT DEFAULT 'PENDING'
         )
     """)
 
@@ -58,6 +59,18 @@ def init_db():
         )
     """)
 
+    # Manual Rules Engine
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS rules (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            name        TEXT,
+            condition   TEXT,
+            action      TEXT,
+            active      INTEGER DEFAULT 1,
+            created_at  TEXT
+        )
+    """)
+
     # Active model config
     c.execute("""
         CREATE TABLE IF NOT EXISTS settings (
@@ -67,6 +80,7 @@ def init_db():
     """)
     # Default active model
     c.execute("INSERT OR IGNORE INTO settings VALUES ('active_model','XGBoost')")
+    c.execute("INSERT OR IGNORE INTO settings VALUES ('auto_block_threshold','0.95')")
 
     conn.commit()
     conn.close()
@@ -169,6 +183,33 @@ def add_webhook(url):
     conn = get_conn()
     conn.execute("INSERT INTO webhooks (url, created_at) VALUES (?,?)",
                  (url, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+    conn.close()
+
+# ── MANAGEMENT FUNCTIONS ──
+
+def update_tx_status(tx_id, status):
+    conn = get_conn()
+    conn.execute("UPDATE transactions SET status=? WHERE id=?", (status, tx_id))
+    conn.commit()
+    conn.close()
+
+def get_rules():
+    conn = get_conn()
+    rows = conn.execute("SELECT * FROM rules WHERE active=1").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def add_rule(name, condition, action):
+    conn = get_conn()
+    conn.execute("INSERT INTO rules (name, condition, action, created_at) VALUES (?,?,?,?)",
+                 (name, condition, action, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+    conn.close()
+
+def delete_rule(rule_id):
+    conn = get_conn()
+    conn.execute("DELETE FROM rules WHERE id=?", (rule_id,))
     conn.commit()
     conn.close()
 

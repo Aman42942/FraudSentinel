@@ -97,6 +97,16 @@
         </a>
       </li>
       <li>
+        <a href="{{ url_for('analytics_page') }}" class="{{ 'active' if request.endpoint == 'analytics_page' }}">
+          <span class="nav-icon">📈</span> Analytics
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('rules_page') }}" class="{{ 'active' if request.endpoint == 'rules_page' }}">
+          <span class="nav-icon">🛡️</span> Rules Engine
+        </a>
+      </li>
+      <li>
         <a href="{{ url_for('adversarial') }}" class="{{ 'active' if request.endpoint == 'adversarial' }}">
           <span class="nav-icon">🧪</span> Hacker Sandbox
         </a>

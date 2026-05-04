@@ -39,6 +39,7 @@
                 <th>MODEL</th>
                 <th>PROBABILITY</th>
                 <th>VERDICT</th>
+                <th>STATUS</th>
             </tr>
         </thead>
         <tbody>
@@ -50,6 +51,14 @@
                 <td style="font-size:0.75rem; color:var(--muted)">{{ row.model_used }}</td>
                 <td style="color:{% if row.prediction == 1 %}var(--red){% else %}var(--neon){% endif %}">{{ "%.2f"|format(row.score * 100) }}%</td>
                 <td><span class="badge {% if row.prediction == 1 %}badge-fraud{% else %}badge-safe{% endif %}">{% if row.prediction == 1 %}FRAUD{% else %}LEGIT{% endif %}</span></td>
+                <td>
+                    <select onchange="updateStatus('{{ row.id }}', this.value)" style="background:var(--bg3); border:1px solid var(--border2); color:white; font-size:0.7rem; padding:2px; font-family:var(--font-mono);">
+                        <option value="PENDING" {% if row.status == 'PENDING' %}selected{% endif %}>PENDING</option>
+                        <option value="REVIEWING" {% if row.status == 'REVIEWING' %}selected{% endif %}>REVIEWING</option>
+                        <option value="CONFIRMED" {% if row.status == 'CONFIRMED' %}selected{% endif %}>CONFIRMED FRAUD</option>
+                        <option value="DISMISSED" {% if row.status == 'DISMISSED' %}selected{% endif %}>DISMISSED</option>
+                    </select>
+                </td>
             </tr>
             {% else %}
             <tr><td colspan="6" style="text-align:center; color:var(--muted); padding: 20px;">No records found.</td></tr>
@@ -95,6 +104,19 @@ function searchTx() {
             `;
         }
     });
+}
+
+async function updateStatus(id, status) {
+    const res = await fetch('/api/history/update-status', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id, status})
+    });
+    const data = await res.json();
+    if(data.status === 'ok') {
+        // Notification logic if we had showToast here, but let's just log
+        console.log(`TX ${id} updated to ${status}`);
+    }
 }
 </script>
 {% endblock %}
