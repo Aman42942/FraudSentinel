@@ -44,11 +44,11 @@
         <tbody>
             {% for row in rows %}
             <tr style="{% if row.prediction == 1 %}border-left: 3px solid var(--red); background:rgba(255,0,60,0.05);{% endif %}">
-                <td style="color:var(--cyan)">{{ row.tx_id }}</td>
+                <td style="color:var(--cyan)">{{ row.id }}</td>
                 <td style="color:var(--muted); font-size:0.75rem;">{{ row.timestamp }}</td>
                 <td>${{ "{:,.2f}".format(row.amount) }}</td>
                 <td style="font-size:0.75rem; color:var(--muted)">{{ row.model_used }}</td>
-                <td style="color:{% if row.prediction == 1 %}var(--red){% else %}var(--neon){% endif %}">{{ "%.2f"|format(row.probability * 100) }}%</td>
+                <td style="color:{% if row.prediction == 1 %}var(--red){% else %}var(--neon){% endif %}">{{ "%.2f"|format(row.score * 100) }}%</td>
                 <td><span class="badge {% if row.prediction == 1 %}badge-fraud{% else %}badge-safe{% endif %}">{% if row.prediction == 1 %}FRAUD{% else %}LEGIT{% endif %}</span></td>
             </tr>
             {% else %}
@@ -85,11 +85,11 @@ function searchTx() {
         else {
             document.querySelector('tbody').innerHTML = `
                 <tr style="${data.prediction===1 ? 'border-left: 3px solid var(--red); background:rgba(255,0,60,0.05);':''}">
-                    <td style="color:var(--cyan)">${data.tx_id}</td>
+                    <td style="color:var(--cyan)">${data.id}</td>
                     <td style="color:var(--muted); font-size:0.75rem;">${data.timestamp}</td>
                     <td>$${data.amount.toFixed(2)}</td>
                     <td style="font-size:0.75rem; color:var(--muted)">${data.model_used}</td>
-                    <td style="color:${data.prediction===1 ? 'var(--red)':'var(--neon)'}">${(data.probability*100).toFixed(2)}%</td>
+                    <td style="color:${data.prediction===1 ? 'var(--red)':'var(--neon)'}">${(data.score*100).toFixed(2)}%</td>
                     <td><span class="badge ${data.prediction===1 ? 'badge-fraud':'badge-safe'}">${data.prediction===1?'FRAUD':'LEGIT'}</span></td>
                 </tr>
             `;
