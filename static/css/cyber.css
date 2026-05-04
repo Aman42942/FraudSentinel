@@ -885,7 +885,7 @@ body {
   bottom: 0;
   right: 20px;
   width: 350px;
-  background: rgba(5,15,15,0.95);
+  background: #050f0f;
   border: 1px solid var(--border2);
   border-bottom: none;
   border-radius: 5px 5px 0 0;
