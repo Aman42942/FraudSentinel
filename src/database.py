@@ -52,15 +52,7 @@ def init_db():
         )
     """)
 
-    # Webhook config
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS webhooks (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            url         TEXT,
-            active      INTEGER DEFAULT 1,
-            created_at  TEXT
-        )
-    """)
+
 
     # Manual Rules Engine
     c.execute("""
